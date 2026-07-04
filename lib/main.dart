@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/game_screen.dart';
+import 'screens/level_select_screen.dart';
 import 'screens/main_menu.dart';
 import 'screens/win_screen.dart';
 
@@ -24,10 +25,26 @@ class TrollRunnerApp extends StatelessWidget {
         ),
         fontFamily: 'Roboto',
       ),
-      routes: {
-        '/': (_) => const MainMenu(),
-        '/game': (_) => const GameScreen(),
-        '/win': (_) => const WinScreen(),
+      onGenerateRoute: (settings) {
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) {
+            switch (settings.name) {
+              case '/game':
+                final initialLevelIndex = settings.arguments is int
+                    ? settings.arguments as int
+                    : 0;
+                return GameScreen(initialLevelIndex: initialLevelIndex);
+              case '/levels':
+                return const LevelSelectScreen();
+              case '/win':
+                return const WinScreen();
+              case '/':
+              default:
+                return const MainMenu();
+            }
+          },
+        );
       },
     );
   }

@@ -8,9 +8,15 @@ void main() {
     await tester.pumpWidget(const TrollRunnerApp());
 
     expect(find.text('Troll Runner'), findsOneWidget);
-    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Level auswählen'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Play'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Level auswählen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Level-Auswahl'), findsOneWidget);
+    expect(find.text('Level 1'), findsOneWidget);
+
+    await tester.tap(find.text('Level 1'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
