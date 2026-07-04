@@ -4,11 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../game/game_painter.dart';
+import '../game/level_progress.dart';
 import '../game/levels.dart';
 import '../game/models.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  const GameScreen({super.key, this.initialLevelIndex = 0});
+
+  final int initialLevelIndex;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -38,7 +41,7 @@ class _GameScreenState extends State<GameScreen>
   void initState() {
     super.initState();
     _levels = buildLevels();
-    _loadLevel(0);
+    _loadLevel(widget.initialLevelIndex.clamp(0, _levels.length - 1));
     _ticker = createTicker(_tick)..start();
   }
 
@@ -272,6 +275,7 @@ class _GameScreenState extends State<GameScreen>
       return;
     }
 
+    LevelProgress.unlockThrough(_levelIndex + 2);
     _loadLevel(_levelIndex + 1);
   }
 
@@ -309,7 +313,7 @@ class _GameScreenState extends State<GameScreen>
               onMenu: () {
                 Navigator.of(
                   context,
-                ).pushNamedAndRemoveUntil('/', (_) => false);
+                ).pushNamedAndRemoveUntil('/levels', (_) => false);
               },
             ),
             Expanded(

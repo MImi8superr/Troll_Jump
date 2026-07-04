@@ -39,9 +39,9 @@ class MainMenu extends StatelessWidget {
                     ),
                     const SizedBox(height: 30),
                     FilledButton.icon(
-                      onPressed: () => Navigator.of(context).pushNamed('/game'),
+                      onPressed: () => Navigator.of(context).pushNamed('/levels'),
                       icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Play'),
+                      label: const Text('Level auswählen'),
                       style: FilledButton.styleFrom(
                         minimumSize: const Size(180, 56),
                         textStyle: const TextStyle(
