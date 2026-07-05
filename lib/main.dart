@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'game/level_progress.dart';
+import 'screens/fake_win_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/level_select_screen.dart';
 import 'screens/main_menu.dart';
@@ -40,6 +41,8 @@ class TrollRunnerApp extends StatelessWidget {
                 return GameScreen(initialLevelIndex: initialLevelIndex);
               case '/levels':
                 return const LevelSelectScreen();
+              case '/fakewin':
+                return const FakeWinScreen();
               case '/win':
                 return const WinScreen();
               case '/':
