@@ -33,7 +33,7 @@ class Sfx {
       await player.stop();
       await player.play(
         AssetSource('audio/$name.wav'),
-        volume: 0.55,
+        volume: 0.4,
         mode: PlayerMode.lowLatency,
       );
     } catch (_) {
