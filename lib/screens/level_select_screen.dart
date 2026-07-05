@@ -2,14 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../game/level_progress.dart';
 import '../game/levels.dart';
+import '../game/models.dart';
 
-class LevelSelectScreen extends StatelessWidget {
+class LevelSelectScreen extends StatefulWidget {
   const LevelSelectScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final levels = buildLevels();
+  State<LevelSelectScreen> createState() => _LevelSelectScreenState();
+}
 
+class _LevelSelectScreenState extends State<LevelSelectScreen> {
+  // Built once per screen instead of on every rebuild of the reactive body.
+  late final List<Level> _levels = buildLevels();
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE6F4FF),
       appBar: AppBar(
@@ -26,7 +33,7 @@ class LevelSelectScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Freigeschaltet: Level $highestUnlocked von ${levels.length}',
+                    'Freigeschaltet: Level $highestUnlocked von ${_levels.length}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 18,
@@ -37,16 +44,19 @@ class LevelSelectScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Expanded(
                     child: GridView.builder(
+                      // A fixed tile height (mainAxisExtent) keeps the icon +
+                      // two-line title from overflowing on small phones, while
+                      // maxCrossAxisExtent adapts the column count to the width.
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 170,
                         mainAxisSpacing: 12,
                         crossAxisSpacing: 12,
-                        childAspectRatio: 1.05,
+                        mainAxisExtent: 134,
                       ),
-                      itemCount: levels.length,
+                      itemCount: _levels.length,
                       itemBuilder: (context, index) {
-                        final level = levels[index];
+                        final level = _levels[index];
                         final unlocked = LevelProgress.isUnlocked(level.number);
                         return _LevelTile(
                           number: level.number,
@@ -88,7 +98,8 @@ class _LevelTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final background = unlocked ? Colors.white : const Color(0xFFCBD5E1);
-    final foreground = unlocked ? const Color(0xFF0F172A) : const Color(0xFF64748B);
+    final foreground =
+        unlocked ? const Color(0xFF0F172A) : const Color(0xFF64748B);
 
     return Material(
       color: background,
@@ -105,7 +116,7 @@ class _LevelTile extends StatelessWidget {
               Icon(
                 unlocked ? Icons.play_circle_fill_rounded : Icons.lock_rounded,
                 color: unlocked ? const Color(0xFF2563EB) : foreground,
-                size: 34,
+                size: 32,
               ),
               const SizedBox(height: 8),
               Text(
@@ -118,15 +129,17 @@ class _LevelTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: foreground,
+              Flexible(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: foreground,
+                  ),
                 ),
               ),
             ],

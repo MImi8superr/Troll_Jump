@@ -17,6 +17,14 @@ class GamePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    // A zero (or negative) dimension makes scale 0 and visibleWorldWidth
+    // infinite, which turns the background loop below into an infinite loop
+    // and freezes the app. Reachable when the play area collapses on
+    // resizable desktop/web windows.
+    if (size.isEmpty) {
+      return;
+    }
+
     final scale = size.height / worldHeight;
     final visibleWorldWidth = size.width / scale;
 

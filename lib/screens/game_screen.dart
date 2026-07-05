@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../game/collision.dart';
 import '../game/game_painter.dart';
 import '../game/level_progress.dart';
 import '../game/levels.dart';
@@ -151,12 +152,17 @@ class _GameScreenState extends State<GameScreen>
       if (!_player.rect.overlaps(platform.rect)) {
         continue;
       }
-      if (_player.velocity.dx > 0) {
+      // Resolve along the axis of least penetration rather than the player's
+      // velocity sign. This also ejects a stationary player when a moving
+      // platform slides into them, instead of leaving them embedded.
+      final pushLeft = _player.rect.right - platform.rect.left;
+      final pushRight = platform.rect.right - _player.rect.left;
+      if (pushLeft < pushRight) {
         _player.position = Offset(
           platform.rect.left - playerSize.width,
           _player.position.dy,
         );
-      } else if (_player.velocity.dx < 0) {
+      } else {
         _player.position = Offset(platform.rect.right, _player.position.dy);
       }
       _player.velocity = Offset(0, _player.velocity.dy);
@@ -241,7 +247,9 @@ class _GameScreenState extends State<GameScreen>
       if (!spike.visible || !spike.dangerous) {
         continue;
       }
-      if (_player.rect.overlaps(spike.rect.deflate(5))) {
+      // Test the actual drawn triangle (slightly shrunk for fairness) so the
+      // player no longer dies in the empty corners beside the spike's tip.
+      if (spikeHitsPlayer(spike, _player.rect.deflate(3))) {
         _restartLevel();
         return;
       }
@@ -496,11 +504,14 @@ class _HoldButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
-      child: GestureDetector(
+      child: Listener(
         behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => onDown(),
-        onTapUp: (_) => onUp(),
-        onTapCancel: onUp,
+        // Raw pointer events (not tap gestures) so a held button keeps firing
+        // when the finger drifts past the touch slop — a tap recognizer would
+        // cancel and silently stop movement mid-jump.
+        onPointerDown: (_) => onDown(),
+        onPointerUp: (_) => onUp(),
+        onPointerCancel: (_) => onUp(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 80),
           width: size,
