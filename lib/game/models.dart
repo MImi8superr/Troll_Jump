@@ -47,6 +47,9 @@ class Level {
     this.hazards = const [],
     this.jumpPads = const [],
     this.traps = const [],
+    this.checkpoints = const [],
+    this.reverseZones = const [],
+    this.decoyGoal,
   });
 
   final int number;
@@ -59,6 +62,9 @@ class Level {
   final List<JumpPad> jumpPads;
   final Goal goal;
   final List<Trap> traps;
+  final List<Checkpoint> checkpoints;
+  final List<ReverseZone> reverseZones;
+  final Goal? decoyGoal;
 
   Level copy() {
     return Level(
@@ -72,6 +78,9 @@ class Level {
       jumpPads: jumpPads.map((pad) => pad.copy()).toList(),
       goal: goal.copy(),
       traps: traps.map((trap) => trap.copy()).toList(),
+      checkpoints: checkpoints.map((cp) => cp.copy()).toList(),
+      reverseZones: reverseZones.map((zone) => zone.copy()).toList(),
+      decoyGoal: decoyGoal?.copy(),
     );
   }
 
@@ -113,7 +122,14 @@ class Level {
     for (final pad in jumpPads) {
       pad.update(dt);
     }
+    for (final checkpoint in checkpoints) {
+      checkpoint.update(dt);
+    }
+    for (final zone in reverseZones) {
+      zone.update(dt);
+    }
     goal.update(dt);
+    decoyGoal?.update(dt);
   }
 }
 
@@ -280,12 +296,14 @@ class Goal {
     this.velocity = Offset.zero,
     this.targetLeft,
     this.flash = 0,
+    this.visible = true,
   });
 
   Rect rect;
   Offset velocity;
   double? targetLeft;
   double flash;
+  bool visible;
 
   Goal copy() {
     return Goal(
@@ -293,6 +311,7 @@ class Goal {
       velocity: velocity,
       targetLeft: targetLeft,
       flash: flash,
+      visible: visible,
     );
   }
 
@@ -346,6 +365,75 @@ class HazardBlock {
 
   void update(double dt) {
     flash = math.max(0, flash - dt);
+  }
+}
+
+/// A mid-level respawn flag. Once touched, deaths restart the level from
+/// here instead of the level start (the level itself still resets fully, so
+/// traps re-arm — the checkpoint only moves the spawn point).
+class Checkpoint {
+  Checkpoint({
+    required this.id,
+    required this.rect,
+    this.reached = false,
+    this.flash = 0,
+  });
+
+  final String id;
+  Rect rect;
+  bool reached;
+  double flash;
+
+  Offset get spawnPosition => Offset(
+    rect.center.dx - playerSize.width / 2,
+    rect.bottom - playerSize.height,
+  );
+
+  Checkpoint copy() {
+    return Checkpoint(id: id, rect: rect, reached: reached, flash: flash);
+  }
+
+  void update(double dt) {
+    flash = math.max(0, flash - dt);
+  }
+}
+
+/// A region that inverts left/right input while the player is inside.
+/// Invisible until first entered, then rendered as a tinted band.
+class ReverseZone {
+  ReverseZone({
+    required this.id,
+    required this.rect,
+    this.revealed = false,
+    this.flash = 0,
+  });
+
+  final String id;
+  Rect rect;
+  bool revealed;
+  double flash;
+
+  ReverseZone copy() {
+    return ReverseZone(id: id, rect: rect, revealed: revealed, flash: flash);
+  }
+
+  void update(double dt) {
+    flash = math.max(0, flash - dt);
+  }
+}
+
+/// A short-lived debris particle spawned by the death effect.
+class DeathParticle {
+  DeathParticle({required this.position, required this.velocity});
+
+  Offset position;
+  Offset velocity;
+  double life = 0.55;
+
+  void update(double dt) {
+    life -= dt;
+    velocity += const Offset(0, 900) * dt;
+    position += velocity * dt;
   }
 }
 
@@ -792,6 +880,105 @@ class ReverseFirstTrap extends Trap {
       spikeId: spikeId,
       disarmX: disarmX,
       triggerX: triggerX,
+    );
+  }
+}
+
+/// The level's decoy goal is a trap: touching it (or sneaking past it) makes
+/// it vanish, reveals spikes at its base, and uncovers the real, previously
+/// hidden goal further ahead.
+class FakeGoalTrap extends Trap {
+  FakeGoalTrap({required this.revealSpikeIds})
+    : super(TrapTriggerType.playerProximity);
+
+  final List<String> revealSpikeIds;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final decoy = level.decoyGoal;
+    if (decoy == null || triggered || !decoy.visible) {
+      return;
+    }
+    final touched = player.rect.overlaps(decoy.rect.inflate(4));
+    final passed = player.rect.left > decoy.rect.right + 24;
+    if (!touched && !passed) {
+      return;
+    }
+    triggered = true;
+    decoy.visible = false;
+    for (final id in revealSpikeIds) {
+      final spike = level.spikeById(id);
+      if (spike != null) {
+        spike.visible = true;
+        spike.dangerous = true;
+        spike.flash = 0.7;
+      }
+    }
+    level.goal.visible = true;
+    level.goal.flash = 0.7;
+  }
+
+  @override
+  Trap copy() {
+    return FakeGoalTrap(revealSpikeIds: List.of(revealSpikeIds));
+  }
+}
+
+/// A spike that, once woken, slides horizontally toward the player forever,
+/// clamped to [minX, maxX]. It moves slightly slower than the player runs,
+/// so it can be outrun or jumped over — but never ignored.
+class ChasingSpikeTrap extends Trap {
+  ChasingSpikeTrap({
+    required this.spikeId,
+    required this.triggerX,
+    required this.minX,
+    required this.maxX,
+    this.speed = 200,
+  }) : super(TrapTriggerType.playerXPosition);
+
+  final String spikeId;
+  final double triggerX;
+  final double minX;
+  final double maxX;
+  final double speed;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final spike = level.spikeById(spikeId);
+    if (spike == null) {
+      return;
+    }
+    if (!triggered) {
+      if (player.center.dx < triggerX) {
+        return;
+      }
+      triggered = true;
+      spike.visible = true;
+      spike.dangerous = true;
+      spike.flash = 0.6;
+    }
+    final delta = player.center.dx - spike.rect.center.dx;
+    if (delta.abs() < 1) {
+      return;
+    }
+    final step = delta.sign * speed * dt;
+    final newLeft = (spike.rect.left + step).clamp(minX, maxX);
+    spike.rect = Rect.fromLTWH(
+      newLeft,
+      spike.rect.top,
+      spike.rect.width,
+      spike.rect.height,
+    );
+  }
+
+  @override
+  Trap copy() {
+    return ChasingSpikeTrap(
+      spikeId: spikeId,
+      triggerX: triggerX,
+      minX: minX,
+      maxX: maxX,
+      speed: speed,
     );
   }
 }

@@ -207,6 +207,7 @@ List<Level> buildLevels() {
       ],
       spikes: [_upSpike('runner-spike', 1060)],
       goal: _goal(1320),
+      checkpoints: [_checkpoint('cp-13', 960)],
       traps: [
         DisappearPlatformTrap(platformId: 'fade-one', delay: 0.5),
         DisappearPlatformTrap(platformId: 'fade-two', delay: 0.5),
@@ -235,6 +236,7 @@ List<Level> buildLevels() {
         _hiddenUpSpike('hidden-one', 1040),
       ],
       goal: _goal(1390),
+      checkpoints: [_checkpoint('cp-14', 790)],
       traps: [
         ActivateMovingPlatformTrap(
           platformId: 'timed-platform',
@@ -269,6 +271,7 @@ List<Level> buildLevels() {
         _downSpike('last-drop', 1325, 120),
       ],
       goal: _goal(1450),
+      checkpoints: [_checkpoint('cp-15', 690)],
       traps: [
         SlideSpikeTrap(
           spikeId: 'early-bait',
@@ -286,6 +289,57 @@ List<Level> buildLevels() {
         ),
         DropSpikeTrap(spikeId: 'last-drop', triggerX: 1280),
         GoalRetreatTrap(triggerDistance: 95, retreatDistance: 105, speed: 250),
+      ],
+    ),
+    Level(
+      number: 16,
+      title: 'Mirror Rules',
+      width: 1500,
+      playerStart: _start(),
+      platforms: [
+        _ground('ground', 0, 1500),
+        // Two identical-looking walls: the low one is real (jump it), the
+        // tall "impossible" one is fake — walk straight through.
+        _wall('wall-real', 400, 88),
+        _wall('wall-fake', 560, 150, solid: false),
+      ],
+      spikes: [_upSpike('chaser-16', 1330)],
+      reverseZones: [_reverseZone('rz-16', 700, 320)],
+      goal: _goal(1430),
+      traps: [
+        ChasingSpikeTrap(
+          spikeId: 'chaser-16',
+          triggerX: 1060,
+          minX: 1020,
+          maxX: 1340,
+        ),
+      ],
+    ),
+    Level(
+      number: 17,
+      title: 'The Wrong Exit',
+      width: 1600,
+      playerStart: _start(),
+      platforms: [_ground('ground', 0, 1600)],
+      spikes: [
+        _upSpike('warm-17', 380),
+        _hiddenUpSpike('fake-goal-spike-1', 968),
+        _hiddenUpSpike('fake-goal-spike-2', 1012),
+        _upSpike('slide-17', 1240),
+      ],
+      checkpoints: [_checkpoint('cp-17', 620)],
+      decoyGoal: Goal(rect: const Rect.fromLTWH(1000, floorY - 86, 54, 86)),
+      goal: _goal(1470, visible: false),
+      traps: [
+        FakeGoalTrap(
+          revealSpikeIds: ['fake-goal-spike-1', 'fake-goal-spike-2'],
+        ),
+        SlideSpikeTrap(
+          spikeId: 'slide-17',
+          triggerDistance: 100,
+          moveDistance: 90,
+          speed: 400,
+        ),
       ],
     ),
   ];
@@ -344,6 +398,23 @@ Spike _downSpike(String id, double x, double y) {
   );
 }
 
-Goal _goal(double x) {
-  return Goal(rect: Rect.fromLTWH(x, floorY - 86, 54, 86));
+Goal _goal(double x, {bool visible = true}) {
+  return Goal(rect: Rect.fromLTWH(x, floorY - 86, 54, 86), visible: visible);
+}
+
+Checkpoint _checkpoint(String id, double x) {
+  return Checkpoint(id: id, rect: Rect.fromLTWH(x, floorY - 58, 34, 58));
+}
+
+ReverseZone _reverseZone(String id, double x, double width) {
+  return ReverseZone(id: id, rect: Rect.fromLTWH(x, floorY - 170, width, 170));
+}
+
+Platform _wall(String id, double x, double height, {bool solid = true}) {
+  return Platform(
+    id: id,
+    rect: Rect.fromLTWH(x, floorY - height, 26, height),
+    color: const Color(0xFF37474F),
+    solid: solid,
+  );
 }
