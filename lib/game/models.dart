@@ -244,27 +244,32 @@ class Spike {
 
     var dx = velocity.dx * dt;
     var dy = velocity.dy * dt;
+    // Stop each axis independently so a spike given both an x and y target (a
+    // diagonal move) isn't frozen the instant either axis arrives.
+    var vx = velocity.dx;
+    var vy = velocity.dy;
 
     if (dx > 0 && targetLeft != null && rect.left + dx >= targetLeft!) {
       dx = targetLeft! - rect.left;
-      velocity = Offset.zero;
+      vx = 0;
       targetLeft = null;
     } else if (dx < 0 && targetLeft != null && rect.left + dx <= targetLeft!) {
       dx = targetLeft! - rect.left;
-      velocity = Offset.zero;
+      vx = 0;
       targetLeft = null;
     }
 
     if (dy > 0 && targetBottom != null && rect.bottom + dy >= targetBottom!) {
       dy = targetBottom! - rect.bottom;
-      velocity = Offset.zero;
+      vy = 0;
       targetBottom = null;
     } else if (dy < 0 && targetTop != null && rect.top + dy <= targetTop!) {
       dy = targetTop! - rect.top;
-      velocity = Offset.zero;
+      vy = 0;
       targetTop = null;
     }
 
+    velocity = Offset(vx, vy);
     rect = rect.shift(Offset(dx, dy));
   }
 }
@@ -297,7 +302,10 @@ class Goal {
       return;
     }
 
+    // Capture the vertical step before the arrival check can zero velocity,
+    // so a moving goal's dy isn't silently dropped on the frame it stops.
     var dx = velocity.dx * dt;
+    final dy = velocity.dy * dt;
     if (dx > 0 && targetLeft != null && rect.left + dx >= targetLeft!) {
       dx = targetLeft! - rect.left;
       velocity = Offset.zero;
@@ -307,7 +315,7 @@ class Goal {
       velocity = Offset.zero;
       targetLeft = null;
     }
-    rect = rect.shift(Offset(dx, velocity.dy * dt));
+    rect = rect.shift(Offset(dx, dy));
   }
 }
 

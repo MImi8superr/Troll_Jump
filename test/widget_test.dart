@@ -1,9 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:troll_run/game/level_progress.dart';
 import 'package:troll_run/main.dart';
 
 void main() {
+  setUp(() {
+    // Keep the persisted-progress singleton hermetic between tests.
+    SharedPreferences.setMockInitialValues({});
+    LevelProgress.highestUnlockedLevel.value = 1;
+  });
+
   testWidgets('opens Troll Runner and starts level one', (tester) async {
     await tester.pumpWidget(const TrollRunnerApp());
 
@@ -20,7 +28,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
 
+    // 'Level 1 / 15' is unique to the in-game top bar; the level title also
+    // appears on the level-select grid underneath, so assert on the counter
+    // plus the jump control to confirm we're actually on the game screen.
     expect(find.text('Level 1 / 15'), findsOneWidget);
-    expect(find.text('First Steps'), findsOneWidget);
+    expect(find.bySemanticsLabel('Jump'), findsOneWidget);
   });
 }

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'game/level_progress.dart';
 import 'screens/game_screen.dart';
 import 'screens/level_select_screen.dart';
 import 'screens/main_menu.dart';
 import 'screens/win_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await LevelProgress.load();
   runApp(const TrollRunnerApp());
 }
 
