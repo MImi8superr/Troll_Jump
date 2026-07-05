@@ -31,7 +31,7 @@ void main() {
     // The level counter is unique to the in-game top bar; the level title
     // also appears on the level-select grid underneath, so assert on the
     // counter plus the jump control to confirm we're on the game screen.
-    expect(find.text('Level 1 / 17'), findsOneWidget);
+    expect(find.text('Level 1 / 20'), findsOneWidget);
     expect(find.bySemanticsLabel('Jump'), findsOneWidget);
   });
 }

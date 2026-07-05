@@ -43,6 +43,7 @@ class GamePainter extends CustomPainter {
     _drawReverseZones(canvas, scale);
     _drawJumpPads(canvas, scale);
     _drawPlatforms(canvas, scale);
+    _drawIceZones(canvas, scale);
     _drawCheckpoints(canvas, scale);
     _drawHazards(canvas, scale);
     _drawSpikes(canvas, scale);
@@ -136,8 +137,39 @@ class GamePainter extends CustomPainter {
     }
   }
 
+  void _drawIceZones(Canvas canvas, double scale) {
+    for (final zone in level.iceZones) {
+      final rect = _toScreen(zone.rect, scale);
+      final sheet = Paint()
+        ..color = const Color(0xFF7DD3FC).withValues(alpha: 0.6);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(4 * scale)),
+        sheet,
+      );
+      // A couple of white sheen streaks so it reads as ice at a glance.
+      final sheen = Paint()
+        ..color = Colors.white.withValues(alpha: 0.7)
+        ..strokeWidth = math.max(1, 1.5 * scale)
+        ..strokeCap = StrokeCap.round;
+      final y = rect.top + rect.height * 0.35;
+      canvas.drawLine(
+        Offset(rect.left + rect.width * 0.1, y),
+        Offset(rect.left + rect.width * 0.22, y),
+        sheen,
+      );
+      canvas.drawLine(
+        Offset(rect.left + rect.width * 0.6, y),
+        Offset(rect.left + rect.width * 0.78, y),
+        sheen,
+      );
+    }
+  }
+
   void _drawCheckpoints(Canvas canvas, double scale) {
     for (final checkpoint in level.checkpoints) {
+      if (!checkpoint.visible) {
+        continue;
+      }
       final rect = _toScreen(checkpoint.rect, scale);
       final baseColor = checkpoint.reached
           ? const Color(0xFF16A34A)
