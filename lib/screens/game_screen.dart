@@ -183,11 +183,17 @@ class _GameScreenState extends State<GameScreen>
     if (reversed) {
       input = -input;
     }
+    // Ice: while the player's feet overlap an ice sheet, acceleration and
+    // braking drop to a fraction — they slide.
+    final onIce = _level.iceZones.any(
+      (zone) => zone.rect.overlaps(_player.rect),
+    );
+    final acceleration = _acceleration * (onIce ? 0.15 : 1.0);
     final targetVelocity = input * _moveSpeed;
     final nextVelocity = _moveToward(
       _player.velocity.dx,
       targetVelocity.toDouble(),
-      _acceleration * dt,
+      acceleration * dt,
     );
     _player.velocity = Offset(nextVelocity, _player.velocity.dy);
   }
@@ -351,6 +357,10 @@ class _GameScreenState extends State<GameScreen>
 
   void _updateCheckpointsAndZones() {
     for (final checkpoint in _level.checkpoints) {
+      // Fake checkpoints never grant a spawn — their trap handles them.
+      if (checkpoint.fake || !checkpoint.visible) {
+        continue;
+      }
       if (!checkpoint.reached &&
           _player.rect.overlaps(checkpoint.rect.inflate(4))) {
         checkpoint.reached = true;

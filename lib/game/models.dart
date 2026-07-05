@@ -49,6 +49,7 @@ class Level {
     this.traps = const [],
     this.checkpoints = const [],
     this.reverseZones = const [],
+    this.iceZones = const [],
     this.decoyGoal,
   });
 
@@ -64,6 +65,7 @@ class Level {
   final List<Trap> traps;
   final List<Checkpoint> checkpoints;
   final List<ReverseZone> reverseZones;
+  final List<IceZone> iceZones;
   final Goal? decoyGoal;
 
   Level copy() {
@@ -80,6 +82,7 @@ class Level {
       traps: traps.map((trap) => trap.copy()).toList(),
       checkpoints: checkpoints.map((cp) => cp.copy()).toList(),
       reverseZones: reverseZones.map((zone) => zone.copy()).toList(),
+      iceZones: iceZones.map((zone) => zone.copy()).toList(),
       decoyGoal: decoyGoal?.copy(),
     );
   }
@@ -101,6 +104,15 @@ class Level {
     for (final spike in spikes) {
       if (spike.id == id) {
         return spike;
+      }
+    }
+    return null;
+  }
+
+  Checkpoint? checkpointById(String id) {
+    for (final checkpoint in checkpoints) {
+      if (checkpoint.id == id) {
+        return checkpoint;
       }
     }
     return null;
@@ -371,18 +383,25 @@ class HazardBlock {
 /// A mid-level respawn flag. Once touched, deaths restart the level from
 /// here instead of the level start (the level itself still resets fully, so
 /// traps re-arm — the checkpoint only moves the spawn point).
+///
+/// A [fake] checkpoint looks identical to an unreached real one but never
+/// grants a spawn point; a [FakeCheckpointTrap] springs it instead.
 class Checkpoint {
   Checkpoint({
     required this.id,
     required this.rect,
     this.reached = false,
     this.flash = 0,
+    this.fake = false,
+    this.visible = true,
   });
 
   final String id;
   Rect rect;
   bool reached;
   double flash;
+  final bool fake;
+  bool visible;
 
   Offset get spawnPosition => Offset(
     rect.center.dx - playerSize.width / 2,
@@ -390,12 +409,31 @@ class Checkpoint {
   );
 
   Checkpoint copy() {
-    return Checkpoint(id: id, rect: rect, reached: reached, flash: flash);
+    return Checkpoint(
+      id: id,
+      rect: rect,
+      reached: reached,
+      flash: flash,
+      fake: fake,
+      visible: visible,
+    );
   }
 
   void update(double dt) {
     flash = math.max(0, flash - dt);
   }
+}
+
+/// A slick patch of floor: while the player overlaps it, horizontal
+/// acceleration (and braking) drops to a fraction, so they slide. Always
+/// visible — the trolling is in the physics, not the surprise.
+class IceZone {
+  IceZone({required this.id, required this.rect});
+
+  final String id;
+  final Rect rect;
+
+  IceZone copy() => IceZone(id: id, rect: rect);
 }
 
 /// A region that inverts left/right input while the player is inside.
@@ -979,6 +1017,131 @@ class ChasingSpikeTrap extends Trap {
       minX: minX,
       maxX: maxX,
       speed: speed,
+    );
+  }
+}
+
+/// A checkpoint-shaped lie. Touching the fake flag makes it vanish and
+/// reveals spikes at its base — it never grants a spawn point. The player's
+/// trust in checkpoints, weaponized.
+class FakeCheckpointTrap extends Trap {
+  FakeCheckpointTrap({required this.checkpointId, required this.revealSpikeIds})
+    : super(TrapTriggerType.playerProximity);
+
+  final String checkpointId;
+  final List<String> revealSpikeIds;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    if (triggered) {
+      return;
+    }
+    final checkpoint = level.checkpointById(checkpointId);
+    if (checkpoint == null || !checkpoint.visible) {
+      return;
+    }
+    if (!player.rect.overlaps(checkpoint.rect.inflate(4))) {
+      return;
+    }
+    triggered = true;
+    checkpoint.visible = false;
+    for (final id in revealSpikeIds) {
+      final spike = level.spikeById(id);
+      if (spike != null) {
+        spike.visible = true;
+        spike.dangerous = true;
+        spike.flash = 0.7;
+      }
+    }
+  }
+
+  @override
+  Trap copy() {
+    return FakeCheckpointTrap(
+      checkpointId: checkpointId,
+      revealSpikeIds: List.of(revealSpikeIds),
+    );
+  }
+}
+
+/// The finale gag: the decoy goal retreats [retreats] times as the player
+/// approaches, then breaks into a run, sprints past [cliffX], plummets off
+/// the edge — and the real, hidden goal reveals itself back at the last
+/// checkpoint.
+class FleeingGoalTrap extends Trap {
+  FleeingGoalTrap({
+    required this.cliffX,
+    this.triggerDistance = 90,
+    this.retreatDistance = 90,
+    this.retreats = 2,
+    this.retreatSpeed = 300,
+    this.fleeSpeed = 320,
+  }) : super(TrapTriggerType.playerProximity);
+
+  final double cliffX;
+  final double triggerDistance;
+  final double retreatDistance;
+  final int retreats;
+  final double retreatSpeed;
+  final double fleeSpeed;
+
+  int _retreatsDone = 0;
+  bool _fleeing = false;
+  double _fallSpeed = 0;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final decoy = level.decoyGoal;
+    if (decoy == null || !decoy.visible) {
+      return;
+    }
+
+    if (_fleeing) {
+      var dy = 0.0;
+      if (decoy.rect.left > cliffX) {
+        _fallSpeed += 1400 * dt;
+        dy = _fallSpeed * dt;
+      }
+      decoy.rect = decoy.rect.shift(Offset(fleeSpeed * dt, dy));
+      if (decoy.rect.top > worldHeight + 80) {
+        decoy.visible = false;
+        level.goal.visible = true;
+        level.goal.flash = 0.8;
+      }
+      return;
+    }
+
+    // Wait until the decoy has finished its previous retreat before the
+    // next approach can set it off again.
+    if (decoy.velocity != Offset.zero) {
+      return;
+    }
+    final close = player.rect.right >= decoy.rect.left - triggerDistance;
+    if (!close) {
+      return;
+    }
+
+    triggered = true;
+    if (_retreatsDone < retreats) {
+      _retreatsDone++;
+      decoy.velocity = Offset(retreatSpeed, 0);
+      decoy.targetLeft = decoy.rect.left + retreatDistance;
+      decoy.flash = 0.5;
+    } else {
+      _fleeing = true;
+      decoy.flash = 0.6;
+    }
+  }
+
+  @override
+  Trap copy() {
+    return FleeingGoalTrap(
+      cliffX: cliffX,
+      triggerDistance: triggerDistance,
+      retreatDistance: retreatDistance,
+      retreats: retreats,
+      retreatSpeed: retreatSpeed,
+      fleeSpeed: fleeSpeed,
     );
   }
 }
