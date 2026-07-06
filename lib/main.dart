@@ -5,6 +5,7 @@ import 'screens/fake_win_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/level_select_screen.dart';
 import 'screens/main_menu.dart';
+import 'screens/shop_screen.dart';
 import 'screens/win_screen.dart';
 
 Future<void> main() async {

@@ -46,6 +46,7 @@ class Level {
     required this.goal,
     this.hazards = const [],
     this.jumpPads = const [],
+    this.coins = const [],
     this.traps = const [],
     this.checkpoints = const [],
     this.reverseZones = const [],
@@ -61,6 +62,7 @@ class Level {
   final List<Spike> spikes;
   final List<HazardBlock> hazards;
   final List<JumpPad> jumpPads;
+  final List<Coin> coins;
   final Goal goal;
   final List<Trap> traps;
   final List<Checkpoint> checkpoints;
@@ -78,6 +80,7 @@ class Level {
       spikes: spikes.map((spike) => spike.copy()).toList(),
       hazards: hazards.map((hazard) => hazard.copy()).toList(),
       jumpPads: jumpPads.map((pad) => pad.copy()).toList(),
+      coins: coins.map((coin) => coin.copy()).toList(),
       goal: goal.copy(),
       traps: traps.map((trap) => trap.copy()).toList(),
       checkpoints: checkpoints.map((cp) => cp.copy()).toList(),

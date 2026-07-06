@@ -28,6 +28,7 @@ class _GameScreenState extends State<GameScreen>
   static const double _gravity = 1450;
   static const double _jumpVelocity = -570;
   static const double _maxFallSpeed = 900;
+  static const double _coinSpawnChance = 0.08;
 
   /// Grace period after walking off a ledge during which a jump still works.
   static const double _coyoteDuration = 0.1;
@@ -61,6 +62,7 @@ class _GameScreenState extends State<GameScreen>
   Offset? _checkpointSpawn;
   String? _checkpointId;
   Duration? _lastTick;
+  final math.Random _random = math.Random();
 
   final List<DeathParticle> _particles = [];
   final math.Random _random = math.Random();
@@ -93,6 +95,7 @@ class _GameScreenState extends State<GameScreen>
 
     _levelIndex = index;
     _level = _levels[index].copy();
+    _spawnRareCoin();
     _player = Player(start: _level.playerStart);
     if (restoreCheckpoint && _checkpointSpawn != null) {
       _player.position = _checkpointSpawn!;
@@ -172,6 +175,7 @@ class _GameScreenState extends State<GameScreen>
     _updateCheckpointsAndZones();
     _notifyTrapSounds();
     _checkHazardsAndBounds();
+    _collectCoins();
     _checkGoal();
   }
 
@@ -464,6 +468,7 @@ class _GameScreenState extends State<GameScreen>
       return;
     }
 
+    LevelProgress.unlockThrough(_levelIndex + 2);
     _loadLevel(_levelIndex + 1);
   }
 

@@ -34,4 +34,15 @@ void main() {
     expect(find.text('Level 1 / 20'), findsOneWidget);
     expect(find.bySemanticsLabel('Jump'), findsOneWidget);
   });
+
+  testWidgets('opens skin shop from main menu', (tester) async {
+    await tester.pumpWidget(const TrollRunnerApp());
+
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Skin-Shop'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Glücksrad'), findsOneWidget);
+    expect(find.text('Classic Blue'), findsOneWidget);
+    expect(find.text('Spin kaufen (5 Münzen)'), findsOneWidget);
+  });
 }
