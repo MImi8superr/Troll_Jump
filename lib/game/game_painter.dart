@@ -55,10 +55,12 @@ class GamePainter extends CustomPainter {
       _drawGoalFlag(canvas, scale, decoy);
     }
     _drawGoalFlag(canvas, scale, level.goal);
+    _drawEvilTwins(canvas, scale);
     if (!hidePlayer) {
       _drawPlayer(canvas, scale);
     }
     _drawParticles(canvas, scale);
+    _drawDarkness(canvas, size, scale);
     _drawDeathOverlay(canvas, size);
   }
 
@@ -356,6 +358,100 @@ class GamePainter extends CustomPainter {
     canvas.drawCircle(rightEye, eyeRadius, eye);
     canvas.drawCircle(leftEye, eyeRadius * 0.45, pupil);
     canvas.drawCircle(rightEye, eyeRadius * 0.45, pupil);
+  }
+
+  void _drawEvilTwins(Canvas canvas, double scale) {
+    for (final trap in level.traps.whereType<EvilTwinTrap>()) {
+      final twin = trap.twinRect(player);
+      if (twin == null) {
+        continue;
+      }
+      final rect = _toScreen(twin, scale);
+      final body = Paint()..color = const Color(0xFFDC2626);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(8 * scale)),
+        body,
+      );
+      final eye = Paint()..color = Colors.white;
+      final pupil = Paint()..color = const Color(0xFF450A0A);
+      final eyeRadius = 3.2 * scale;
+      final leftEye = Offset(
+        rect.left + rect.width * 0.34,
+        rect.top + 15 * scale,
+      );
+      final rightEye = Offset(
+        rect.left + rect.width * 0.66,
+        rect.top + 15 * scale,
+      );
+      canvas.drawCircle(leftEye, eyeRadius, eye);
+      canvas.drawCircle(rightEye, eyeRadius, eye);
+      canvas.drawCircle(leftEye, eyeRadius * 0.45, pupil);
+      canvas.drawCircle(rightEye, eyeRadius * 0.45, pupil);
+    }
+  }
+
+  /// Blacks out the world while the player is inside a dark zone, leaving a
+  /// soft light circle around the player, lantern glows at checkpoints,
+  /// glowing goals, freshly-triggered spikes — and everything during the
+  /// periodic lightning flash.
+  void _drawDarkness(Canvas canvas, Size size, double scale) {
+    DarkZone? active;
+    for (final zone in level.darkZones) {
+      if (zone.rect.overlaps(player.rect)) {
+        active = zone;
+        break;
+      }
+    }
+    if (active == null || active.flashing) {
+      return;
+    }
+
+    final screen = Offset.zero & size;
+    canvas.saveLayer(screen, Paint());
+    canvas.drawRect(
+      screen,
+      Paint()..color = const Color(0xFF020617).withValues(alpha: 0.94),
+    );
+
+    void punchHole(Offset worldCenter, double worldRadius) {
+      final center = Offset(
+        (worldCenter.dx - cameraX) * scale,
+        worldCenter.dy * scale,
+      );
+      final radius = worldRadius * scale;
+      final hole = Paint()
+        ..blendMode = BlendMode.dstOut
+        ..shader = RadialGradient(
+          colors: [
+            Colors.white,
+            Colors.white,
+            Colors.white.withValues(alpha: 0),
+          ],
+          stops: const [0, 0.65, 1],
+        ).createShader(Rect.fromCircle(center: center, radius: radius));
+      canvas.drawCircle(center, radius, hole);
+    }
+
+    punchHole(player.rect.center, active.lightRadius);
+    for (final checkpoint in level.checkpoints) {
+      if (checkpoint.visible && active.rect.overlaps(checkpoint.rect)) {
+        punchHole(checkpoint.rect.center, 90);
+      }
+    }
+    if (level.goal.visible) {
+      punchHole(level.goal.rect.center, 110);
+    }
+    final decoy = level.decoyGoal;
+    if (decoy != null && decoy.visible) {
+      punchHole(decoy.rect.center, 110);
+    }
+    for (final spike in level.spikes) {
+      if (spike.visible && spike.flash > 0) {
+        punchHole(spike.rect.center, 70);
+      }
+    }
+
+    canvas.restore();
   }
 
   void _drawParticles(Canvas canvas, double scale) {

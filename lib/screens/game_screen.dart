@@ -456,6 +456,15 @@ class _GameScreenState extends State<GameScreen>
         return;
       }
     }
+
+    // The evil twin kills on touch; jump over it at the mirror line.
+    for (final trap in _level.traps.whereType<EvilTwinTrap>()) {
+      final twin = trap.twinRect(_player);
+      if (twin != null && _player.rect.deflate(3).overlaps(twin.deflate(3))) {
+        _die();
+        return;
+      }
+    }
   }
 
   void _die() {

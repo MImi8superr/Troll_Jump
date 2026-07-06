@@ -87,9 +87,9 @@ void main() {
       expect(spawn.dx, 600 + (34 - playerSize.width) / 2);
     });
 
-    test('levels 13-15 and 17-21 have a checkpoint', () {
+    test('levels 13-15 and 17-23 have a checkpoint', () {
       final levels = buildLevels();
-      for (final number in [13, 14, 15, 17, 18, 19, 20, 21]) {
+      for (final number in [13, 14, 15, 17, 18, 19, 20, 21, 22, 23]) {
         final level = levels.firstWhere((level) => level.number == number);
         expect(level.checkpoints, isNotEmpty, reason: 'level $number');
       }
@@ -197,10 +197,85 @@ void main() {
     });
   });
 
+  group('MimicSpikeTrap (level 22)', () {
+    test('moves only while the player moves', () {
+      final level =
+          buildLevels().firstWhere((level) => level.number == 22).copy();
+      final trap = level.traps.whereType<MimicSpikeTrap>().single;
+      final spike = level.spikeById(trap.spikeId)!;
+      final startLeft = spike.rect.left;
+
+      // Past the trigger line but standing still: the spike stays frozen.
+      final player = Player(
+        start: Offset(800 - playerSize.width / 2, floorY - playerSize.height),
+      );
+      trap.update(level, player, 0.5);
+      expect(trap.triggered, isTrue);
+      expect(spike.rect.left, startLeft);
+
+      // Green light: the player moves, the spike closes in at 90% speed.
+      player.velocity = const Offset(260, 0);
+      trap.update(level, player, 0.5);
+      expect(spike.rect.left, lessThan(startLeft));
+      final afterMove = spike.rect.left;
+
+      // Red light: freeze again — the spike freezes too.
+      player.velocity = Offset.zero;
+      trap.update(level, player, 0.5);
+      expect(spike.rect.left, afterMove);
+    });
+  });
+
+  group('EvilTwinTrap (level 22)', () {
+    test('mirrors the player across the mirror line, within range only', () {
+      final level =
+          buildLevels().firstWhere((level) => level.number == 22).copy();
+      final trap = level.traps.whereType<EvilTwinTrap>().single;
+
+      // Player 100 left of the mirror: twin stands 100 right of it.
+      final near = Player(
+        start: Offset(
+          trap.mirrorX - 100 - playerSize.width / 2,
+          floorY - playerSize.height,
+        ),
+      );
+      final twin = trap.twinRect(near)!;
+      expect(twin.center.dx, closeTo(trap.mirrorX + 100, 0.001));
+      expect(twin.bottom, floorY);
+
+      // Far outside the range: no twin.
+      final far = Player(start: Offset(64, floorY - playerSize.height));
+      expect(trap.twinRect(far), isNull);
+    });
+  });
+
+  group('DarkZone (level 23)', () {
+    test('lightning flash cycles with time', () {
+      final zone = DarkZone(
+        id: 'dz',
+        rect: const Rect.fromLTWH(0, 0, 100, 100),
+      );
+      expect(zone.flashing, isTrue); // t=0 is inside the first flash window
+      zone.update(0.5);
+      expect(zone.flashing, isFalse);
+      zone.update(2.75); // t=3.25 -> 3.25 % 3.2 = 0.05 < 0.16
+      expect(zone.flashing, isTrue);
+    });
+
+    test('level 23 wraps its dark stretch in a zone', () {
+      final level = buildLevels().firstWhere((level) => level.number == 23);
+      expect(level.darkZones, isNotEmpty);
+      final zone = level.darkZones.single;
+      // The decoy goal and the real goal both sit inside the darkness.
+      expect(zone.rect.overlaps(level.decoyGoal!.rect), isTrue);
+      expect(zone.rect.overlaps(level.goal.rect), isTrue);
+    });
+  });
+
   group('level data sanity', () {
     test('all levels are internally consistent', () {
       final levels = buildLevels();
-      expect(levels.length, 21);
+      expect(levels.length, 23);
 
       for (final level in levels) {
         // The goal must sit inside the level bounds.
