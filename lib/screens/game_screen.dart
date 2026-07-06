@@ -3,12 +3,16 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../game/economy.dart';
 import '../game/game_painter.dart';
+import '../game/level_progress.dart';
 import '../game/levels.dart';
 import '../game/models.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  const GameScreen({super.key, this.initialLevelIndex = 0});
+
+  final int initialLevelIndex;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -21,6 +25,7 @@ class _GameScreenState extends State<GameScreen>
   static const double _gravity = 1450;
   static const double _jumpVelocity = -570;
   static const double _maxFallSpeed = 900;
+  static const double _coinSpawnChance = 0.08;
 
   late final List<Level> _levels;
   late final Ticker _ticker;
@@ -33,12 +38,13 @@ class _GameScreenState extends State<GameScreen>
   bool _transitioning = false;
   double _jumpBuffer = 0;
   Duration? _lastTick;
+  final math.Random _random = math.Random();
 
   @override
   void initState() {
     super.initState();
     _levels = buildLevels();
-    _loadLevel(0);
+    _loadLevel(widget.initialLevelIndex.clamp(0, _levels.length - 1));
     _ticker = createTicker(_tick)..start();
   }
 
@@ -51,6 +57,7 @@ class _GameScreenState extends State<GameScreen>
   void _loadLevel(int index) {
     _levelIndex = index;
     _level = _levels[index].copy();
+    _spawnRareCoin();
     _player = Player(start: _level.playerStart);
     _leftHeld = false;
     _rightHeld = false;
@@ -94,6 +101,7 @@ class _GameScreenState extends State<GameScreen>
     _moveHorizontally(dt);
     _moveVertically(dt);
     _checkHazardsAndBounds();
+    _collectCoins();
     _checkGoal();
   }
 
@@ -228,6 +236,33 @@ class _GameScreenState extends State<GameScreen>
     return false;
   }
 
+  void _spawnRareCoin() {
+    _level.coins.clear();
+    if (_random.nextDouble() > _coinSpawnChance) {
+      return;
+    }
+
+    final minX = math.min(_level.width - 160, 220.0);
+    final maxX = math.max(minX, _level.width - 220);
+    final x = minX + _random.nextDouble() * (maxX - minX);
+    _level.coins.add(
+      Coin(
+        id: 'rare-coin-${_level.number}',
+        rect: Rect.fromLTWH(x, floorY - 106, 24, 24),
+      ),
+    );
+  }
+
+  void _collectCoins() {
+    for (final coin in _level.coins) {
+      if (coin.collected || !_player.rect.overlaps(coin.rect.inflate(4))) {
+        continue;
+      }
+      coin.collected = true;
+      GameEconomy.addCoins(1);
+    }
+  }
+
   void _checkHazardsAndBounds() {
     if (_player.rect.top > worldHeight + 160) {
       _restartLevel();
@@ -272,6 +307,7 @@ class _GameScreenState extends State<GameScreen>
       return;
     }
 
+    LevelProgress.unlockThrough(_levelIndex + 2);
     _loadLevel(_levelIndex + 1);
   }
 
@@ -309,7 +345,7 @@ class _GameScreenState extends State<GameScreen>
               onMenu: () {
                 Navigator.of(
                   context,
-                ).pushNamedAndRemoveUntil('/', (_) => false);
+                ).pushNamedAndRemoveUntil('/levels', (_) => false);
               },
             ),
             Expanded(
@@ -321,6 +357,7 @@ class _GameScreenState extends State<GameScreen>
                       painter: GamePainter(
                         level: _level,
                         player: _player,
+                        playerColor: GameEconomy.selectedSkin.color,
                         cameraX: _cameraFor(size),
                       ),
                       child: const SizedBox.expand(),

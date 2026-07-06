@@ -46,6 +46,7 @@ class Level {
     required this.goal,
     this.hazards = const [],
     this.jumpPads = const [],
+    this.coins = const [],
     this.traps = const [],
   });
 
@@ -57,6 +58,7 @@ class Level {
   final List<Spike> spikes;
   final List<HazardBlock> hazards;
   final List<JumpPad> jumpPads;
+  final List<Coin> coins;
   final Goal goal;
   final List<Trap> traps;
 
@@ -70,6 +72,7 @@ class Level {
       spikes: spikes.map((spike) => spike.copy()).toList(),
       hazards: hazards.map((hazard) => hazard.copy()).toList(),
       jumpPads: jumpPads.map((pad) => pad.copy()).toList(),
+      coins: coins.map((coin) => coin.copy()).toList(),
       goal: goal.copy(),
       traps: traps.map((trap) => trap.copy()).toList(),
     );
@@ -112,6 +115,9 @@ class Level {
     }
     for (final pad in jumpPads) {
       pad.update(dt);
+    }
+    for (final coin in coins) {
+      coin.update(dt);
     }
     goal.update(dt);
   }
@@ -338,6 +344,33 @@ class HazardBlock {
 
   void update(double dt) {
     flash = math.max(0, flash - dt);
+  }
+}
+
+class Coin {
+  Coin({
+    required this.id,
+    required this.rect,
+    this.collected = false,
+    this.spin = 0,
+  });
+
+  final String id;
+  Rect rect;
+  bool collected;
+  double spin;
+
+  Coin copy() {
+    return Coin(
+      id: id,
+      rect: rect,
+      collected: collected,
+      spin: spin,
+    );
+  }
+
+  void update(double dt) {
+    spin = (spin + dt * 4) % (math.pi * 2);
   }
 }
 

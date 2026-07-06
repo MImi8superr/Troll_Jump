@@ -8,11 +8,13 @@ class GamePainter extends CustomPainter {
   GamePainter({
     required this.level,
     required this.player,
+    required this.playerColor,
     required this.cameraX,
   });
 
   final Level level;
   final Player player;
+  final Color playerColor;
   final double cameraX;
 
   @override
@@ -22,6 +24,7 @@ class GamePainter extends CustomPainter {
 
     _drawBackground(canvas, size, visibleWorldWidth);
     _drawJumpPads(canvas, scale);
+    _drawCoins(canvas, scale);
     _drawPlatforms(canvas, scale);
     _drawHazards(canvas, scale);
     _drawSpikes(canvas, scale);
@@ -113,6 +116,35 @@ class GamePainter extends CustomPainter {
     }
   }
 
+  void _drawCoins(Canvas canvas, double scale) {
+    for (final coin in level.coins) {
+      if (coin.collected) {
+        continue;
+      }
+      final rect = _toScreen(coin.rect, scale);
+      final center = rect.center;
+      final squash = 0.68 + math.cos(coin.spin).abs() * 0.32;
+      final coinRect = Rect.fromCenter(
+        center: center,
+        width: rect.width * squash,
+        height: rect.height,
+      );
+      final paint = Paint()..color = const Color(0xFFFACC15);
+      canvas.drawOval(coinRect, paint);
+      final edge = Paint()
+        ..color = const Color(0xFFB45309)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1, 2 * scale);
+      canvas.drawOval(coinRect, edge);
+      final sparkle = Paint()..color = const Color(0xBFFFFFFF);
+      canvas.drawCircle(
+        Offset(center.dx - rect.width * 0.18, center.dy - rect.height * 0.18),
+        math.max(1.2, 2.6 * scale),
+        sparkle,
+      );
+    }
+  }
+
   void _drawHazards(Canvas canvas, double scale) {
     for (final hazard in level.hazards) {
       if (!hazard.visible) {
@@ -194,7 +226,7 @@ class GamePainter extends CustomPainter {
 
   void _drawPlayer(Canvas canvas, double scale) {
     final rect = _toScreen(player.rect, scale);
-    final body = Paint()..color = const Color(0xFF2563EB);
+    final body = Paint()..color = playerColor;
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, Radius.circular(8 * scale)),
       body,

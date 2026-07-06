@@ -39,13 +39,26 @@ class MainMenu extends StatelessWidget {
                     ),
                     const SizedBox(height: 30),
                     FilledButton.icon(
-                      onPressed: () => Navigator.of(context).pushNamed('/game'),
+                      onPressed: () => Navigator.of(context).pushNamed('/levels'),
                       icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Play'),
+                      label: const Text('Level auswählen'),
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size(180, 56),
+                        minimumSize: const Size(220, 56),
                         textStyle: const TextStyle(
                           fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pushNamed('/shop'),
+                      icon: const Icon(Icons.storefront_rounded),
+                      label: const Text('Skin-Shop'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(220, 52),
+                        textStyle: const TextStyle(
+                          fontSize: 18,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
