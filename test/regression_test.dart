@@ -12,7 +12,12 @@ void main() {
   test('GamePainter does not hang when the canvas has zero height', () {
     final level = buildLevels().first.copy();
     final player = Player(start: level.playerStart);
-    final painter = GamePainter(level: level, player: player, cameraX: 0);
+    final painter = GamePainter(
+      level: level,
+      player: player,
+      playerColor: const Color(0xFF2563EB),
+      cameraX: 0,
+    );
 
     final recorder = PictureRecorder();
     // Before the size guard this looped forever (scale 0 -> infinite width).

@@ -507,6 +507,108 @@ List<Level> buildLevels() {
         FleeingGoalTrap(cliffX: 2360),
       ],
     ),
+    Level(
+      number: 21,
+      title: 'Trollhalla',
+      width: 2650,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-21a', 0, 1310),
+        _ground('g-21b', 1470, 1180),
+        _wall('wall-short-21', 1880, 88),
+        _wall('wall-tall-21', 2110, 170),
+      ],
+      spikes: [
+        // The crowd: a dense carpet of fake spikes (level 18 taught that
+        // walking through is safe) — but ONE of them is real, identical,
+        // and hunts the player through the crowd. Spot the mover.
+        _upSpike('f21-1', 300, dangerous: false),
+        _upSpike('f21-2', 335, dangerous: false),
+        _upSpike('f21-3', 370, dangerous: false),
+        _upSpike('f21-4', 405, dangerous: false),
+        _upSpike('f21-5', 440, dangerous: false),
+        _upSpike('chaser-21', 460),
+        _upSpike('f21-6', 495, dangerous: false),
+        _upSpike('f21-7', 530, dangerous: false),
+        _upSpike('f21-8', 565, dangerous: false),
+        _upSpike('f21-9', 600, dangerous: false),
+        // Drop-spike rain: keep sprinting — straight onto the ice.
+        _downSpike('d21-a', 840, 110),
+        _downSpike('d21-b', 960, 110),
+        _downSpike('d21-c', 1060, 110),
+        // Inside the overlapping ice + reverse zone.
+        _upSpike('mirror-spike-21', 1780),
+        // Under the fake checkpoint.
+        _hiddenUpSpike('fc21-a', 2200),
+        _hiddenUpSpike('fc21-b', 2244),
+        // Under the fake goal.
+        _hiddenUpSpike('fg21-a', 2450),
+        _hiddenUpSpike('fg21-b', 2494),
+      ],
+      iceZones: [
+        _iceZone('ice-21a', 1100, 210),
+        _iceZone('ice-21b', 1620, 210),
+      ],
+      // Overlaps ice-21b: mirrored controls while sliding.
+      reverseZones: [_reverseZone('rz-21', 1600, 250)],
+      jumpPads: [
+        // The only way over the tall wall: land on it with speed (wild).
+        JumpPad(
+          id: 'launch-21',
+          rect: const Rect.fromLTWH(1990, floorY - 14, 72, 14),
+        ),
+      ],
+      checkpoints: [
+        _checkpoint('cp-21a', 720),
+        // Floating over the pit: grabbed mid-jump. Respawns on the far
+        // ledge — a flag in the air is no place to wake up.
+        Checkpoint(
+          id: 'cp-21air',
+          rect: const Rect.fromLTWH(1375, 375, 34, 58),
+          spawnOverride: Offset(1490, floorY - playerSize.height),
+        ),
+        _checkpoint('cp-21c', 2150),
+        // Level 19 taught "the first checkpoint is the fake one".
+        // Here the first is real — and this second one is not.
+        Checkpoint(
+          id: 'cp-21fake',
+          rect: const Rect.fromLTWH(2230, floorY - 58, 34, 58),
+          fake: true,
+        ),
+      ],
+      decoyGoal: Goal(rect: const Rect.fromLTWH(2480, floorY - 86, 54, 86)),
+      // The real goal has been standing at the start the whole time.
+      goal: _goal(90, visible: false),
+      traps: [
+        ChasingSpikeTrap(
+          spikeId: 'chaser-21',
+          triggerX: 250,
+          minX: 290,
+          maxX: 640,
+          speed: 190,
+        ),
+        DropSpikeTrap(spikeId: 'd21-a', triggerX: 790),
+        DropSpikeTrap(spikeId: 'd21-b', triggerX: 910),
+        DropSpikeTrap(spikeId: 'd21-c', triggerX: 1010),
+        FakeCheckpointTrap(
+          checkpointId: 'cp-21fake',
+          revealSpikeIds: ['fc21-a', 'fc21-b'],
+        ),
+        // Both walls crumble as the player nears the fake goal — ominous,
+        // and it opens the way back.
+        BreakPlatformTrap(
+          platformId: 'wall-short-21',
+          triggerX: 2440,
+          delay: 0.3,
+        ),
+        BreakPlatformTrap(
+          platformId: 'wall-tall-21',
+          triggerX: 2440,
+          delay: 0.3,
+        ),
+        FakeGoalTrap(revealSpikeIds: ['fg21-a', 'fg21-b']),
+      ],
+    ),
   ];
 }
 
