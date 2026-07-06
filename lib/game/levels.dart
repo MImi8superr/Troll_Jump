@@ -207,6 +207,7 @@ List<Level> buildLevels() {
       ],
       spikes: [_upSpike('runner-spike', 1060)],
       goal: _goal(1320),
+      checkpoints: [_checkpoint('cp-13', 960)],
       traps: [
         DisappearPlatformTrap(platformId: 'fade-one', delay: 0.5),
         DisappearPlatformTrap(platformId: 'fade-two', delay: 0.5),
@@ -235,6 +236,7 @@ List<Level> buildLevels() {
         _hiddenUpSpike('hidden-one', 1040),
       ],
       goal: _goal(1390),
+      checkpoints: [_checkpoint('cp-14', 790)],
       traps: [
         ActivateMovingPlatformTrap(
           platformId: 'timed-platform',
@@ -269,6 +271,7 @@ List<Level> buildLevels() {
         _downSpike('last-drop', 1325, 120),
       ],
       goal: _goal(1450),
+      checkpoints: [_checkpoint('cp-15', 690)],
       traps: [
         SlideSpikeTrap(
           spikeId: 'early-bait',
@@ -286,6 +289,222 @@ List<Level> buildLevels() {
         ),
         DropSpikeTrap(spikeId: 'last-drop', triggerX: 1280),
         GoalRetreatTrap(triggerDistance: 95, retreatDistance: 105, speed: 250),
+      ],
+    ),
+    Level(
+      number: 16,
+      title: 'Mirror Rules',
+      width: 1500,
+      playerStart: _start(),
+      platforms: [
+        _ground('ground', 0, 1500),
+        // Two identical-looking walls: the low one is real (jump it), the
+        // tall "impossible" one is fake — walk straight through.
+        _wall('wall-real', 400, 88),
+        _wall('wall-fake', 560, 150, solid: false),
+      ],
+      spikes: [_upSpike('chaser-16', 1330)],
+      reverseZones: [_reverseZone('rz-16', 700, 320)],
+      goal: _goal(1430),
+      traps: [
+        ChasingSpikeTrap(
+          spikeId: 'chaser-16',
+          triggerX: 1060,
+          minX: 1020,
+          maxX: 1340,
+        ),
+      ],
+    ),
+    Level(
+      number: 17,
+      title: 'The Wrong Exit',
+      width: 1600,
+      playerStart: _start(),
+      platforms: [_ground('ground', 0, 1600)],
+      spikes: [
+        _upSpike('warm-17', 380),
+        _hiddenUpSpike('fake-goal-spike-1', 968),
+        _hiddenUpSpike('fake-goal-spike-2', 1012),
+        _upSpike('slide-17', 1240),
+      ],
+      checkpoints: [_checkpoint('cp-17', 620)],
+      decoyGoal: Goal(rect: const Rect.fromLTWH(1000, floorY - 86, 54, 86)),
+      goal: _goal(1470, visible: false),
+      traps: [
+        FakeGoalTrap(
+          revealSpikeIds: ['fake-goal-spike-1', 'fake-goal-spike-2'],
+        ),
+        SlideSpikeTrap(
+          spikeId: 'slide-17',
+          triggerDistance: 100,
+          moveDistance: 90,
+          speed: 400,
+        ),
+      ],
+    ),
+    Level(
+      number: 18,
+      title: 'Leap of Faith',
+      width: 1700,
+      // The run starts on an elevated block; the pit below is the real path.
+      playerStart: Offset(64, 340 - playerSize.height),
+      platforms: [
+        _platform('start-block', 0, 340, 300, height: 260),
+        _platform('bridge-1', 340, 340, 160),
+        _platform('bridge-2', 560, 340, 160, cracked: true),
+        _platform('bridge-3', 780, 340, 160),
+        _ground('pit-floor', 300, 900),
+        _platform('right-block', 1200, 340, 500, height: 260),
+      ],
+      spikes: [
+        // The pit is paved with spikes — every single one of them fake.
+        // Eighteen levels of "spikes kill" collide with one leap of faith.
+        _upSpike('faith-1', 330, dangerous: false),
+        _upSpike('faith-2', 420, dangerous: false),
+        _upSpike('faith-3', 500, dangerous: false),
+        _upSpike('faith-4', 640, dangerous: false),
+        _upSpike('faith-5', 700, dangerous: false),
+        _upSpike('faith-6', 960, dangerous: false),
+        _upSpike('faith-7', 1030, dangerous: false),
+        // The ceiling spikes under the bridge, however, are very real:
+        // a full jump in the corridor is lethal — short hops only.
+        _downSpike('ceil-1', 400, 362),
+        _downSpike('ceil-3', 795, 362),
+        _downSpike('ceil-4', 866, 362),
+        // One last fake spike on the exit plateau as a farewell wink.
+        Spike(
+          id: 'roof-fake',
+          rect: const Rect.fromLTWH(1400, 340 - 36, 40, 36),
+          dangerous: false,
+        ),
+      ],
+      hazards: [
+        HazardBlock(
+          id: 'hazard-18',
+          rect: const Rect.fromLTWH(870, floorY - 36, 46, 36),
+        ),
+      ],
+      jumpPads: [
+        // Only the wild bounce (land on it with speed) clears the 180px wall
+        // — the exact opposite of level 9's "be gentle" lesson.
+        JumpPad(
+          id: 'launch-18',
+          rect: const Rect.fromLTWH(1110, floorY - 14, 72, 14),
+        ),
+      ],
+      checkpoints: [_checkpoint('cp-18', 590)],
+      goal: Goal(rect: const Rect.fromLTWH(1620, 340 - 86, 54, 86)),
+      traps: [
+        BreakPlatformTrap(platformId: 'bridge-2', triggerX: 570, delay: 0.22),
+      ],
+    ),
+    Level(
+      number: 19,
+      title: 'Thin Ice',
+      width: 1800,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-19a', 0, 820),
+        _ground('g-19b', 990, 810),
+      ],
+      spikes: [
+        // Slides TOWARD the player, parking right at the edge of the ice.
+        _upSpike('ice-bait', 700),
+        _upSpike('chaser-19', 1490),
+        _hiddenUpSpike('fc-spike-1', 1470),
+        _hiddenUpSpike('fc-spike-2', 1512),
+        _downSpike('last-drop-19', 1685, 120),
+      ],
+      iceZones: [
+        _iceZone('ice-a', 300, 320),
+        _iceZone('ice-b', 1050, 350),
+      ],
+      checkpoints: [
+        _checkpoint('cp-19a', 770),
+        // Looks exactly like a checkpoint. Is not a checkpoint.
+        Checkpoint(
+          id: 'cp-19-fake',
+          rect: const Rect.fromLTWH(1500, floorY - 58, 34, 58),
+          fake: true,
+        ),
+        _checkpoint('cp-19b', 1615),
+      ],
+      goal: _goal(1730),
+      traps: [
+        SlideSpikeTrap(
+          spikeId: 'ice-bait',
+          triggerDistance: 130,
+          moveDistance: -80,
+          speed: -360,
+        ),
+        ChasingSpikeTrap(
+          spikeId: 'chaser-19',
+          triggerX: 1150,
+          minX: 1120,
+          maxX: 1420,
+        ),
+        FakeCheckpointTrap(
+          checkpointId: 'cp-19-fake',
+          revealSpikeIds: ['fc-spike-1', 'fc-spike-2'],
+        ),
+        DropSpikeTrap(spikeId: 'last-drop-19', triggerX: 1655),
+      ],
+    ),
+    Level(
+      number: 20,
+      title: 'Troll Parade',
+      width: 2600,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-20a', 0, 350),
+        _platform('fade-20a', 390, 430, 130, cracked: true),
+        _platform('fade-20b', 590, 430, 130, cracked: true),
+        _ground('g-20b', 760, 390),
+        _platform('shy-20', 1200, 430, 130),
+        _ground('g-20c', 1500, 200),
+        _wall('wall-real-20', 1580, 88),
+        _wall('wall-fake-20', 1640, 150, solid: false),
+        _ground('g-20d', 1700, 660),
+      ],
+      spikes: [
+        _upSpike('bait-20', 250),
+        _downSpike('drop-20a', 850, 110),
+        _downSpike('drop-20b', 1000, 110),
+        _upSpike('chaser-20', 1980),
+      ],
+      reverseZones: [_reverseZone('rz-20', 1500, 200)],
+      checkpoints: [
+        _checkpoint('cp-20a', 1120),
+        _checkpoint('cp-20b', 1760),
+      ],
+      // The flag everyone sees is the decoy; the real goal hides back at
+      // the last checkpoint and only appears once the decoy takes the dive.
+      decoyGoal: Goal(rect: const Rect.fromLTWH(2120, floorY - 86, 54, 86)),
+      goal: _goal(1705, visible: false),
+      traps: [
+        SlideSpikeTrap(
+          spikeId: 'bait-20',
+          triggerDistance: 100,
+          moveDistance: 60,
+          speed: 380,
+        ),
+        DisappearPlatformTrap(platformId: 'fade-20a', delay: 0.45),
+        DisappearPlatformTrap(platformId: 'fade-20b', delay: 0.45),
+        DropSpikeTrap(spikeId: 'drop-20a', triggerX: 800),
+        DropSpikeTrap(spikeId: 'drop-20b', triggerX: 950),
+        FleePlatformOnJumpTrap(
+          platformId: 'shy-20',
+          triggerDistance: 200,
+          moveDistance: 80,
+          speed: 300,
+        ),
+        ChasingSpikeTrap(
+          spikeId: 'chaser-20',
+          triggerX: 1850,
+          minX: 1820,
+          maxX: 2000,
+        ),
+        FleeingGoalTrap(cliffX: 2360),
       ],
     ),
   ];
@@ -344,6 +563,29 @@ Spike _downSpike(String id, double x, double y) {
   );
 }
 
-Goal _goal(double x) {
-  return Goal(rect: Rect.fromLTWH(x, floorY - 86, 54, 86));
+Goal _goal(double x, {bool visible = true}) {
+  return Goal(rect: Rect.fromLTWH(x, floorY - 86, 54, 86), visible: visible);
+}
+
+Checkpoint _checkpoint(String id, double x) {
+  return Checkpoint(id: id, rect: Rect.fromLTWH(x, floorY - 58, 34, 58));
+}
+
+ReverseZone _reverseZone(String id, double x, double width) {
+  return ReverseZone(id: id, rect: Rect.fromLTWH(x, floorY - 170, width, 170));
+}
+
+IceZone _iceZone(String id, double x, double width) {
+  // A thin sheet sitting on the floor: slippery only while the player's
+  // feet are in it, so jumping briefly restores full air control.
+  return IceZone(id: id, rect: Rect.fromLTWH(x, floorY - 24, width, 24));
+}
+
+Platform _wall(String id, double x, double height, {bool solid = true}) {
+  return Platform(
+    id: id,
+    rect: Rect.fromLTWH(x, floorY - height, 26, height),
+    color: const Color(0xFF37474F),
+    solid: solid,
+  );
 }

@@ -10,6 +10,9 @@ class GamePainter extends CustomPainter {
     required this.player,
     required this.playerColor,
     required this.cameraX,
+    this.particles = const [],
+    this.deathProgress = 0,
+    this.hidePlayer = false,
   });
 
   final Level level;
@@ -17,19 +20,46 @@ class GamePainter extends CustomPainter {
   final Color playerColor;
   final double cameraX;
 
+  /// Debris from the death effect, in world coordinates.
+  final List<DeathParticle> particles;
+
+  /// 1 at the moment of death, decaying to 0; drives the red screen tint.
+  final double deathProgress;
+
+  final bool hidePlayer;
+
   @override
   void paint(Canvas canvas, Size size) {
+    // A zero (or negative) dimension makes scale 0 and visibleWorldWidth
+    // infinite, which turns the background loop below into an infinite loop
+    // and freezes the app. Reachable when the play area collapses on
+    // resizable desktop/web windows.
+    if (size.isEmpty) {
+      return;
+    }
+
     final scale = size.height / worldHeight;
     final visibleWorldWidth = size.width / scale;
 
     _drawBackground(canvas, size, visibleWorldWidth);
+    _drawReverseZones(canvas, scale);
     _drawJumpPads(canvas, scale);
     _drawCoins(canvas, scale);
     _drawPlatforms(canvas, scale);
+    _drawIceZones(canvas, scale);
+    _drawCheckpoints(canvas, scale);
     _drawHazards(canvas, scale);
     _drawSpikes(canvas, scale);
-    _drawGoal(canvas, scale);
-    _drawPlayer(canvas, scale);
+    final decoy = level.decoyGoal;
+    if (decoy != null) {
+      _drawGoalFlag(canvas, scale, decoy);
+    }
+    _drawGoalFlag(canvas, scale, level.goal);
+    if (!hidePlayer) {
+      _drawPlayer(canvas, scale);
+    }
+    _drawParticles(canvas, scale);
+    _drawDeathOverlay(canvas, size);
   }
 
   void _drawBackground(Canvas canvas, Size size, double visibleWorldWidth) {
@@ -53,6 +83,24 @@ class GamePainter extends CustomPainter {
 
     final sun = Paint()..color = const Color(0xFFFBBF24);
     canvas.drawCircle(Offset(size.width - 58, 58), 24, sun);
+  }
+
+  void _drawReverseZones(Canvas canvas, double scale) {
+    for (final zone in level.reverseZones) {
+      if (!zone.revealed) {
+        continue;
+      }
+      final rect = _toScreen(zone.rect, scale);
+      final alpha = 0.14 + math.min(0.2, zone.flash * 0.3);
+      final fill = Paint()
+        ..color = const Color(0xFF9333EA).withValues(alpha: alpha);
+      canvas.drawRect(rect, fill);
+      final border = Paint()
+        ..color = const Color(0xFF7E22CE).withValues(alpha: 0.55)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1, 2 * scale);
+      canvas.drawRect(rect, border);
+    }
   }
 
   void _drawPlatforms(Canvas canvas, double scale) {
@@ -89,6 +137,64 @@ class GamePainter extends CustomPainter {
           crack,
         );
       }
+    }
+  }
+
+  void _drawIceZones(Canvas canvas, double scale) {
+    for (final zone in level.iceZones) {
+      final rect = _toScreen(zone.rect, scale);
+      final sheet = Paint()
+        ..color = const Color(0xFF7DD3FC).withValues(alpha: 0.6);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(4 * scale)),
+        sheet,
+      );
+      // A couple of white sheen streaks so it reads as ice at a glance.
+      final sheen = Paint()
+        ..color = Colors.white.withValues(alpha: 0.7)
+        ..strokeWidth = math.max(1, 1.5 * scale)
+        ..strokeCap = StrokeCap.round;
+      final y = rect.top + rect.height * 0.35;
+      canvas.drawLine(
+        Offset(rect.left + rect.width * 0.1, y),
+        Offset(rect.left + rect.width * 0.22, y),
+        sheen,
+      );
+      canvas.drawLine(
+        Offset(rect.left + rect.width * 0.6, y),
+        Offset(rect.left + rect.width * 0.78, y),
+        sheen,
+      );
+    }
+  }
+
+  void _drawCheckpoints(Canvas canvas, double scale) {
+    for (final checkpoint in level.checkpoints) {
+      if (!checkpoint.visible) {
+        continue;
+      }
+      final rect = _toScreen(checkpoint.rect, scale);
+      final baseColor = checkpoint.reached
+          ? const Color(0xFF16A34A)
+          : const Color(0xFF94A3B8);
+      final color = _flash(baseColor, checkpoint.flash, const Color(0xFFFFF176));
+
+      final pole = Paint()..color = const Color(0xFF475569);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(rect.left, rect.top, 4 * scale, rect.height),
+          Radius.circular(2 * scale),
+        ),
+        pole,
+      );
+
+      final pennant = Paint()..color = color;
+      final path = Path()
+        ..moveTo(rect.left + 4 * scale, rect.top + 3 * scale)
+        ..lineTo(rect.left + 26 * scale, rect.top + 11 * scale)
+        ..lineTo(rect.left + 4 * scale, rect.top + 19 * scale)
+        ..close();
+      canvas.drawPath(path, pennant);
     }
   }
 
@@ -199,13 +305,16 @@ class GamePainter extends CustomPainter {
     }
   }
 
-  void _drawGoal(Canvas canvas, double scale) {
-    final rect = _toScreen(level.goal.rect, scale);
+  void _drawGoalFlag(Canvas canvas, double scale, Goal goal) {
+    if (!goal.visible) {
+      return;
+    }
+    final rect = _toScreen(goal.rect, scale);
     final pole = Paint()..color = const Color(0xFF14532D);
     final flag = Paint()
       ..color = _flash(
         const Color(0xFF22C55E),
-        level.goal.flash,
+        goal.flash,
         const Color(0xFFFFF176),
       );
 
@@ -247,6 +356,32 @@ class GamePainter extends CustomPainter {
     canvas.drawCircle(rightEye, eyeRadius, eye);
     canvas.drawCircle(leftEye, eyeRadius * 0.45, pupil);
     canvas.drawCircle(rightEye, eyeRadius * 0.45, pupil);
+  }
+
+  void _drawParticles(Canvas canvas, double scale) {
+    for (final particle in particles) {
+      final alpha = math.max(0.0, math.min(1.0, particle.life / 0.55));
+      final paint = Paint()
+        ..color = Color.lerp(
+          const Color(0xFFF97316),
+          const Color(0xFFDC2626),
+          alpha,
+        )!.withValues(alpha: alpha);
+      final center = Offset(
+        (particle.position.dx - cameraX) * scale,
+        particle.position.dy * scale,
+      );
+      canvas.drawCircle(center, 3.2 * scale * (0.5 + alpha * 0.5), paint);
+    }
+  }
+
+  void _drawDeathOverlay(Canvas canvas, Size size) {
+    if (deathProgress <= 0) {
+      return;
+    }
+    final paint = Paint()
+      ..color = const Color(0xFFDC2626).withValues(alpha: 0.30 * deathProgress);
+    canvas.drawRect(Offset.zero & size, paint);
   }
 
   Rect _toScreen(Rect rect, double scale) {

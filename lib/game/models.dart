@@ -48,6 +48,10 @@ class Level {
     this.jumpPads = const [],
     this.coins = const [],
     this.traps = const [],
+    this.checkpoints = const [],
+    this.reverseZones = const [],
+    this.iceZones = const [],
+    this.decoyGoal,
   });
 
   final int number;
@@ -61,6 +65,10 @@ class Level {
   final List<Coin> coins;
   final Goal goal;
   final List<Trap> traps;
+  final List<Checkpoint> checkpoints;
+  final List<ReverseZone> reverseZones;
+  final List<IceZone> iceZones;
+  final Goal? decoyGoal;
 
   Level copy() {
     return Level(
@@ -75,6 +83,10 @@ class Level {
       coins: coins.map((coin) => coin.copy()).toList(),
       goal: goal.copy(),
       traps: traps.map((trap) => trap.copy()).toList(),
+      checkpoints: checkpoints.map((cp) => cp.copy()).toList(),
+      reverseZones: reverseZones.map((zone) => zone.copy()).toList(),
+      iceZones: iceZones.map((zone) => zone.copy()).toList(),
+      decoyGoal: decoyGoal?.copy(),
     );
   }
 
@@ -100,6 +112,15 @@ class Level {
     return null;
   }
 
+  Checkpoint? checkpointById(String id) {
+    for (final checkpoint in checkpoints) {
+      if (checkpoint.id == id) {
+        return checkpoint;
+      }
+    }
+    return null;
+  }
+
   void updateObjects(double dt, Player player) {
     for (final platform in platforms) {
       final movement = platform.update(dt);
@@ -116,10 +137,14 @@ class Level {
     for (final pad in jumpPads) {
       pad.update(dt);
     }
-    for (final coin in coins) {
-      coin.update(dt);
+    for (final checkpoint in checkpoints) {
+      checkpoint.update(dt);
+    }
+    for (final zone in reverseZones) {
+      zone.update(dt);
     }
     goal.update(dt);
+    decoyGoal?.update(dt);
   }
 }
 
@@ -250,27 +275,32 @@ class Spike {
 
     var dx = velocity.dx * dt;
     var dy = velocity.dy * dt;
+    // Stop each axis independently so a spike given both an x and y target (a
+    // diagonal move) isn't frozen the instant either axis arrives.
+    var vx = velocity.dx;
+    var vy = velocity.dy;
 
     if (dx > 0 && targetLeft != null && rect.left + dx >= targetLeft!) {
       dx = targetLeft! - rect.left;
-      velocity = Offset.zero;
+      vx = 0;
       targetLeft = null;
     } else if (dx < 0 && targetLeft != null && rect.left + dx <= targetLeft!) {
       dx = targetLeft! - rect.left;
-      velocity = Offset.zero;
+      vx = 0;
       targetLeft = null;
     }
 
     if (dy > 0 && targetBottom != null && rect.bottom + dy >= targetBottom!) {
       dy = targetBottom! - rect.bottom;
-      velocity = Offset.zero;
+      vy = 0;
       targetBottom = null;
     } else if (dy < 0 && targetTop != null && rect.top + dy <= targetTop!) {
       dy = targetTop! - rect.top;
-      velocity = Offset.zero;
+      vy = 0;
       targetTop = null;
     }
 
+    velocity = Offset(vx, vy);
     rect = rect.shift(Offset(dx, dy));
   }
 }
@@ -281,12 +311,14 @@ class Goal {
     this.velocity = Offset.zero,
     this.targetLeft,
     this.flash = 0,
+    this.visible = true,
   });
 
   Rect rect;
   Offset velocity;
   double? targetLeft;
   double flash;
+  bool visible;
 
   Goal copy() {
     return Goal(
@@ -294,6 +326,7 @@ class Goal {
       velocity: velocity,
       targetLeft: targetLeft,
       flash: flash,
+      visible: visible,
     );
   }
 
@@ -303,7 +336,10 @@ class Goal {
       return;
     }
 
+    // Capture the vertical step before the arrival check can zero velocity,
+    // so a moving goal's dy isn't silently dropped on the frame it stops.
     var dx = velocity.dx * dt;
+    final dy = velocity.dy * dt;
     if (dx > 0 && targetLeft != null && rect.left + dx >= targetLeft!) {
       dx = targetLeft! - rect.left;
       velocity = Offset.zero;
@@ -313,7 +349,7 @@ class Goal {
       velocity = Offset.zero;
       targetLeft = null;
     }
-    rect = rect.shift(Offset(dx, velocity.dy * dt));
+    rect = rect.shift(Offset(dx, dy));
   }
 }
 
@@ -347,30 +383,98 @@ class HazardBlock {
   }
 }
 
-class Coin {
-  Coin({
+/// A mid-level respawn flag. Once touched, deaths restart the level from
+/// here instead of the level start (the level itself still resets fully, so
+/// traps re-arm — the checkpoint only moves the spawn point).
+///
+/// A [fake] checkpoint looks identical to an unreached real one but never
+/// grants a spawn point; a [FakeCheckpointTrap] springs it instead.
+class Checkpoint {
+  Checkpoint({
     required this.id,
     required this.rect,
-    this.collected = false,
-    this.spin = 0,
+    this.reached = false,
+    this.flash = 0,
+    this.fake = false,
+    this.visible = true,
   });
 
   final String id;
   Rect rect;
-  bool collected;
-  double spin;
+  bool reached;
+  double flash;
+  final bool fake;
+  bool visible;
 
-  Coin copy() {
-    return Coin(
+  Offset get spawnPosition => Offset(
+    rect.center.dx - playerSize.width / 2,
+    rect.bottom - playerSize.height,
+  );
+
+  Checkpoint copy() {
+    return Checkpoint(
       id: id,
       rect: rect,
-      collected: collected,
-      spin: spin,
+      reached: reached,
+      flash: flash,
+      fake: fake,
+      visible: visible,
     );
   }
 
   void update(double dt) {
-    spin = (spin + dt * 4) % (math.pi * 2);
+    flash = math.max(0, flash - dt);
+  }
+}
+
+/// A slick patch of floor: while the player overlaps it, horizontal
+/// acceleration (and braking) drops to a fraction, so they slide. Always
+/// visible — the trolling is in the physics, not the surprise.
+class IceZone {
+  IceZone({required this.id, required this.rect});
+
+  final String id;
+  final Rect rect;
+
+  IceZone copy() => IceZone(id: id, rect: rect);
+}
+
+/// A region that inverts left/right input while the player is inside.
+/// Invisible until first entered, then rendered as a tinted band.
+class ReverseZone {
+  ReverseZone({
+    required this.id,
+    required this.rect,
+    this.revealed = false,
+    this.flash = 0,
+  });
+
+  final String id;
+  Rect rect;
+  bool revealed;
+  double flash;
+
+  ReverseZone copy() {
+    return ReverseZone(id: id, rect: rect, revealed: revealed, flash: flash);
+  }
+
+  void update(double dt) {
+    flash = math.max(0, flash - dt);
+  }
+}
+
+/// A short-lived debris particle spawned by the death effect.
+class DeathParticle {
+  DeathParticle({required this.position, required this.velocity});
+
+  Offset position;
+  Offset velocity;
+  double life = 0.55;
+
+  void update(double dt) {
+    life -= dt;
+    velocity += const Offset(0, 900) * dt;
+    position += velocity * dt;
   }
 }
 
@@ -817,6 +921,230 @@ class ReverseFirstTrap extends Trap {
       spikeId: spikeId,
       disarmX: disarmX,
       triggerX: triggerX,
+    );
+  }
+}
+
+/// The level's decoy goal is a trap: touching it (or sneaking past it) makes
+/// it vanish, reveals spikes at its base, and uncovers the real, previously
+/// hidden goal further ahead.
+class FakeGoalTrap extends Trap {
+  FakeGoalTrap({required this.revealSpikeIds})
+    : super(TrapTriggerType.playerProximity);
+
+  final List<String> revealSpikeIds;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final decoy = level.decoyGoal;
+    if (decoy == null || triggered || !decoy.visible) {
+      return;
+    }
+    final touched = player.rect.overlaps(decoy.rect.inflate(4));
+    final passed = player.rect.left > decoy.rect.right + 24;
+    if (!touched && !passed) {
+      return;
+    }
+    triggered = true;
+    decoy.visible = false;
+    for (final id in revealSpikeIds) {
+      final spike = level.spikeById(id);
+      if (spike != null) {
+        spike.visible = true;
+        spike.dangerous = true;
+        spike.flash = 0.7;
+      }
+    }
+    level.goal.visible = true;
+    level.goal.flash = 0.7;
+  }
+
+  @override
+  Trap copy() {
+    return FakeGoalTrap(revealSpikeIds: List.of(revealSpikeIds));
+  }
+}
+
+/// A spike that, once woken, slides horizontally toward the player forever,
+/// clamped to [minX, maxX]. It moves slightly slower than the player runs,
+/// so it can be outrun or jumped over — but never ignored.
+class ChasingSpikeTrap extends Trap {
+  ChasingSpikeTrap({
+    required this.spikeId,
+    required this.triggerX,
+    required this.minX,
+    required this.maxX,
+    this.speed = 200,
+  }) : super(TrapTriggerType.playerXPosition);
+
+  final String spikeId;
+  final double triggerX;
+  final double minX;
+  final double maxX;
+  final double speed;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final spike = level.spikeById(spikeId);
+    if (spike == null) {
+      return;
+    }
+    if (!triggered) {
+      if (player.center.dx < triggerX) {
+        return;
+      }
+      triggered = true;
+      spike.visible = true;
+      spike.dangerous = true;
+      spike.flash = 0.6;
+    }
+    final delta = player.center.dx - spike.rect.center.dx;
+    if (delta.abs() < 1) {
+      return;
+    }
+    final step = delta.sign * speed * dt;
+    final newLeft = (spike.rect.left + step).clamp(minX, maxX);
+    spike.rect = Rect.fromLTWH(
+      newLeft,
+      spike.rect.top,
+      spike.rect.width,
+      spike.rect.height,
+    );
+  }
+
+  @override
+  Trap copy() {
+    return ChasingSpikeTrap(
+      spikeId: spikeId,
+      triggerX: triggerX,
+      minX: minX,
+      maxX: maxX,
+      speed: speed,
+    );
+  }
+}
+
+/// A checkpoint-shaped lie. Touching the fake flag makes it vanish and
+/// reveals spikes at its base — it never grants a spawn point. The player's
+/// trust in checkpoints, weaponized.
+class FakeCheckpointTrap extends Trap {
+  FakeCheckpointTrap({required this.checkpointId, required this.revealSpikeIds})
+    : super(TrapTriggerType.playerProximity);
+
+  final String checkpointId;
+  final List<String> revealSpikeIds;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    if (triggered) {
+      return;
+    }
+    final checkpoint = level.checkpointById(checkpointId);
+    if (checkpoint == null || !checkpoint.visible) {
+      return;
+    }
+    if (!player.rect.overlaps(checkpoint.rect.inflate(4))) {
+      return;
+    }
+    triggered = true;
+    checkpoint.visible = false;
+    for (final id in revealSpikeIds) {
+      final spike = level.spikeById(id);
+      if (spike != null) {
+        spike.visible = true;
+        spike.dangerous = true;
+        spike.flash = 0.7;
+      }
+    }
+  }
+
+  @override
+  Trap copy() {
+    return FakeCheckpointTrap(
+      checkpointId: checkpointId,
+      revealSpikeIds: List.of(revealSpikeIds),
+    );
+  }
+}
+
+/// The finale gag: the decoy goal retreats [retreats] times as the player
+/// approaches, then breaks into a run, sprints past [cliffX], plummets off
+/// the edge — and the real, hidden goal reveals itself back at the last
+/// checkpoint.
+class FleeingGoalTrap extends Trap {
+  FleeingGoalTrap({
+    required this.cliffX,
+    this.triggerDistance = 90,
+    this.retreatDistance = 90,
+    this.retreats = 2,
+    this.retreatSpeed = 300,
+    this.fleeSpeed = 320,
+  }) : super(TrapTriggerType.playerProximity);
+
+  final double cliffX;
+  final double triggerDistance;
+  final double retreatDistance;
+  final int retreats;
+  final double retreatSpeed;
+  final double fleeSpeed;
+
+  int _retreatsDone = 0;
+  bool _fleeing = false;
+  double _fallSpeed = 0;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final decoy = level.decoyGoal;
+    if (decoy == null || !decoy.visible) {
+      return;
+    }
+
+    if (_fleeing) {
+      var dy = 0.0;
+      if (decoy.rect.left > cliffX) {
+        _fallSpeed += 1400 * dt;
+        dy = _fallSpeed * dt;
+      }
+      decoy.rect = decoy.rect.shift(Offset(fleeSpeed * dt, dy));
+      if (decoy.rect.top > worldHeight + 80) {
+        decoy.visible = false;
+        level.goal.visible = true;
+        level.goal.flash = 0.8;
+      }
+      return;
+    }
+
+    // Wait until the decoy has finished its previous retreat before the
+    // next approach can set it off again.
+    if (decoy.velocity != Offset.zero) {
+      return;
+    }
+    final close = player.rect.right >= decoy.rect.left - triggerDistance;
+    if (!close) {
+      return;
+    }
+
+    triggered = true;
+    if (_retreatsDone < retreats) {
+      _retreatsDone++;
+      decoy.velocity = Offset(retreatSpeed, 0);
+      decoy.targetLeft = decoy.rect.left + retreatDistance;
+      decoy.flash = 0.5;
+    } else {
+      _fleeing = true;
+      decoy.flash = 0.6;
+    }
+  }
+
+  @override
+  Trap copy() {
+    return FleeingGoalTrap(
+      cliffX: cliffX,
+      triggerDistance: triggerDistance,
+      retreatDistance: retreatDistance,
+      retreats: retreats,
+      retreatSpeed: retreatSpeed,
+      fleeSpeed: fleeSpeed,
     );
   }
 }

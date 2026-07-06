@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../game/game_stats.dart';
+
 class WinScreen extends StatelessWidget {
   const WinScreen({super.key});
 
@@ -38,6 +40,16 @@ class WinScreen extends StatelessWidget {
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     color: Color(0xFF3F6212),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Total deaths: ${GameStats.totalDeaths}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF65A30D),
                   ),
                 ),
                 const SizedBox(height: 30),

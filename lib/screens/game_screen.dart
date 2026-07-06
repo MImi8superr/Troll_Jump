@@ -2,12 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 
-import '../game/economy.dart';
+import '../game/collision.dart';
 import '../game/game_painter.dart';
+import '../game/game_stats.dart';
 import '../game/level_progress.dart';
 import '../game/levels.dart';
 import '../game/models.dart';
+import '../game/sfx.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key, this.initialLevelIndex = 0});
@@ -27,6 +30,18 @@ class _GameScreenState extends State<GameScreen>
   static const double _maxFallSpeed = 900;
   static const double _coinSpawnChance = 0.08;
 
+  /// Grace period after walking off a ledge during which a jump still works.
+  static const double _coyoteDuration = 0.1;
+
+  /// Rising speed a jump is cut to when the jump button is released early.
+  static const double _jumpCutVelocity = -300;
+
+  static const double _deathDuration = 0.55;
+
+  /// The level whose goal leads to the fake win screen instead of the next
+  /// level (the original "final" level, before the bonus levels were added).
+  static const int _fakeWinLevelIndex = 14;
+
   late final List<Level> _levels;
   late final Ticker _ticker;
   late Level _level;
@@ -37,8 +52,21 @@ class _GameScreenState extends State<GameScreen>
   bool _rightHeld = false;
   bool _transitioning = false;
   double _jumpBuffer = 0;
+  double _coyoteTimer = 0;
+  bool _jumpHeld = false;
+  bool _jumpCuttable = false;
+  int _deathsThisLevel = 0;
+  int _triggeredTrapCount = 0;
+  double _deathTimer = 0;
+  double _deathElapsed = 0;
+  Offset? _checkpointSpawn;
+  String? _checkpointId;
   Duration? _lastTick;
   final math.Random _random = math.Random();
+
+  final List<DeathParticle> _particles = [];
+  final math.Random _random = math.Random();
+  final FocusNode _focusNode = FocusNode(debugLabel: 'game-keyboard');
 
   @override
   void initState() {
@@ -51,17 +79,41 @@ class _GameScreenState extends State<GameScreen>
   @override
   void dispose() {
     _ticker.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _loadLevel(int index) {
+  void _loadLevel(int index, {bool keepCheckpoint = false}) {
+    final restoreCheckpoint = keepCheckpoint && index == _levelIndex;
+    if (index != _levelIndex) {
+      _deathsThisLevel = 0;
+    }
+    if (!restoreCheckpoint) {
+      _checkpointSpawn = null;
+      _checkpointId = null;
+    }
+
     _levelIndex = index;
     _level = _levels[index].copy();
     _spawnRareCoin();
     _player = Player(start: _level.playerStart);
+    if (restoreCheckpoint && _checkpointSpawn != null) {
+      _player.position = _checkpointSpawn!;
+      for (final checkpoint in _level.checkpoints) {
+        if (checkpoint.id == _checkpointId) {
+          checkpoint.reached = true;
+        }
+      }
+    }
+
     _leftHeld = false;
     _rightHeld = false;
     _jumpBuffer = 0;
+    _coyoteTimer = 0;
+    _jumpCuttable = false;
+    _deathTimer = 0;
+    _triggeredTrapCount = 0;
+    _particles.clear();
   }
 
   void _tick(Duration elapsed) {
@@ -83,6 +135,19 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _updateGame(double dt) {
+    if (_deathTimer > 0) {
+      _deathTimer -= dt;
+      _deathElapsed += dt;
+      for (final particle in _particles) {
+        particle.update(dt);
+      }
+      _particles.removeWhere((particle) => particle.life <= 0);
+      if (_deathTimer <= 0) {
+        _loadLevel(_levelIndex, keepCheckpoint: true);
+      }
+      return;
+    }
+
     _jumpBuffer = math.max(0, _jumpBuffer - dt);
 
     _applyHorizontalInput(dt);
@@ -100,18 +165,39 @@ class _GameScreenState extends State<GameScreen>
 
     _moveHorizontally(dt);
     _moveVertically(dt);
+
+    if (_player.onGround) {
+      _coyoteTimer = _coyoteDuration;
+    } else {
+      _coyoteTimer = math.max(0, _coyoteTimer - dt);
+    }
+
+    _updateCheckpointsAndZones();
+    _notifyTrapSounds();
     _checkHazardsAndBounds();
     _collectCoins();
     _checkGoal();
   }
 
   void _applyHorizontalInput(double dt) {
-    final input = (_rightHeld ? 1 : 0) - (_leftHeld ? 1 : 0);
+    var input = (_rightHeld ? 1 : 0) - (_leftHeld ? 1 : 0);
+    final reversed = _level.reverseZones.any(
+      (zone) => zone.revealed && zone.rect.overlaps(_player.rect),
+    );
+    if (reversed) {
+      input = -input;
+    }
+    // Ice: while the player's feet overlap an ice sheet, acceleration and
+    // braking drop to a fraction — they slide.
+    final onIce = _level.iceZones.any(
+      (zone) => zone.rect.overlaps(_player.rect),
+    );
+    final acceleration = _acceleration * (onIce ? 0.15 : 1.0);
     final targetVelocity = input * _moveSpeed;
     final nextVelocity = _moveToward(
       _player.velocity.dx,
       targetVelocity.toDouble(),
-      _acceleration * dt,
+      acceleration * dt,
     );
     _player.velocity = Offset(nextVelocity, _player.velocity.dy);
   }
@@ -124,7 +210,11 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _tryStartJump() {
-    if (_jumpBuffer <= 0 || !_player.onGround) {
+    if (_jumpBuffer <= 0) {
+      return;
+    }
+    // Coyote time: a jump shortly after leaving a ledge still counts.
+    if (!_player.onGround && _coyoteTimer <= 0) {
       return;
     }
 
@@ -132,10 +222,34 @@ class _GameScreenState extends State<GameScreen>
     _player.onGround = false;
     _player.groundPlatformId = null;
     _jumpBuffer = 0;
+    _coyoteTimer = 0;
+    _jumpCuttable = true;
+    Sfx.jump();
+
+    // A tap that was already released (e.g. a buffered jump) becomes a short
+    // hop right away instead of a full-height jump.
+    if (!_jumpHeld) {
+      _player.velocity = Offset(_player.velocity.dx, _jumpCutVelocity);
+      _jumpCuttable = false;
+    }
 
     for (final trap in _level.traps) {
       trap.onPlayerJump(_level, _player);
     }
+  }
+
+  void _onJumpPressed() {
+    _jumpHeld = true;
+    _jumpBuffer = 0.13;
+  }
+
+  void _onJumpReleased() {
+    _jumpHeld = false;
+    // Variable jump height: releasing early trims the remaining rise.
+    if (_jumpCuttable && _player.velocity.dy < _jumpCutVelocity) {
+      _player.velocity = Offset(_player.velocity.dx, _jumpCutVelocity);
+    }
+    _jumpCuttable = false;
   }
 
   void _moveHorizontally(double dt) {
@@ -156,12 +270,17 @@ class _GameScreenState extends State<GameScreen>
       if (!_player.rect.overlaps(platform.rect)) {
         continue;
       }
-      if (_player.velocity.dx > 0) {
+      // Resolve along the axis of least penetration rather than the player's
+      // velocity sign. This also ejects a stationary player when a moving
+      // platform slides into them, instead of leaving them embedded.
+      final pushLeft = _player.rect.right - platform.rect.left;
+      final pushRight = platform.rect.right - _player.rect.left;
+      if (pushLeft < pushRight) {
         _player.position = Offset(
           platform.rect.left - playerSize.width,
           _player.position.dy,
         );
-      } else if (_player.velocity.dx < 0) {
+      } else {
         _player.position = Offset(platform.rect.right, _player.position.dy);
       }
       _player.velocity = Offset(0, _player.velocity.dy);
@@ -229,43 +348,54 @@ class _GameScreenState extends State<GameScreen>
       );
       _player.onGround = false;
       _player.groundPlatformId = null;
+      // Pad launches are not jumps: releasing the jump button must not trim
+      // them, or the pad would lose its whole point.
+      _jumpCuttable = false;
       pad.cooldown = 0.28;
       pad.flash = 0.45;
+      Sfx.boing();
       return true;
     }
     return false;
   }
 
-  void _spawnRareCoin() {
-    _level.coins.clear();
-    if (_random.nextDouble() > _coinSpawnChance) {
-      return;
-    }
-
-    final minX = math.min(_level.width - 160, 220.0);
-    final maxX = math.max(minX, _level.width - 220);
-    final x = minX + _random.nextDouble() * (maxX - minX);
-    _level.coins.add(
-      Coin(
-        id: 'rare-coin-${_level.number}',
-        rect: Rect.fromLTWH(x, floorY - 106, 24, 24),
-      ),
-    );
-  }
-
-  void _collectCoins() {
-    for (final coin in _level.coins) {
-      if (coin.collected || !_player.rect.overlaps(coin.rect.inflate(4))) {
+  void _updateCheckpointsAndZones() {
+    for (final checkpoint in _level.checkpoints) {
+      // Fake checkpoints never grant a spawn — their trap handles them.
+      if (checkpoint.fake || !checkpoint.visible) {
         continue;
       }
-      coin.collected = true;
-      GameEconomy.addCoins(1);
+      if (!checkpoint.reached &&
+          _player.rect.overlaps(checkpoint.rect.inflate(4))) {
+        checkpoint.reached = true;
+        checkpoint.flash = 0.6;
+        _checkpointSpawn = checkpoint.spawnPosition;
+        _checkpointId = checkpoint.id;
+        Sfx.checkpoint();
+      }
     }
+    for (final zone in _level.reverseZones) {
+      if (!zone.revealed && zone.rect.overlaps(_player.rect)) {
+        zone.revealed = true;
+        zone.flash = 0.8;
+        Sfx.trap();
+      }
+    }
+  }
+
+  /// Plays the trap sound whenever any trap fired this frame, regardless of
+  /// which callback (proximity, jump, landing, position) triggered it.
+  void _notifyTrapSounds() {
+    final triggered = _level.traps.where((trap) => trap.triggered).length;
+    if (triggered > _triggeredTrapCount) {
+      Sfx.trap();
+    }
+    _triggeredTrapCount = triggered;
   }
 
   void _checkHazardsAndBounds() {
     if (_player.rect.top > worldHeight + 160) {
-      _restartLevel();
+      _die();
       return;
     }
 
@@ -273,8 +403,10 @@ class _GameScreenState extends State<GameScreen>
       if (!spike.visible || !spike.dangerous) {
         continue;
       }
-      if (_player.rect.overlaps(spike.rect.deflate(5))) {
-        _restartLevel();
+      // Test the actual drawn triangle (slightly shrunk for fairness) so the
+      // player no longer dies in the empty corners beside the spike's tip.
+      if (spikeHitsPlayer(spike, _player.rect.deflate(3))) {
+        _die();
         return;
       }
     }
@@ -284,26 +416,55 @@ class _GameScreenState extends State<GameScreen>
         continue;
       }
       if (_player.rect.overlaps(hazard.rect.deflate(3))) {
-        _restartLevel();
+        _die();
         return;
       }
     }
   }
 
+  void _die() {
+    if (_deathTimer > 0) {
+      return;
+    }
+    _deathTimer = _deathDuration;
+    _deathElapsed = 0;
+    _deathsThisLevel++;
+    GameStats.totalDeaths++;
+    final origin = _player.center;
+    for (var i = 0; i < 16; i++) {
+      final angle = _random.nextDouble() * 2 * math.pi;
+      final speed = 90 + _random.nextDouble() * 190;
+      _particles.add(
+        DeathParticle(
+          position: origin,
+          velocity: Offset(
+            math.cos(angle) * speed,
+            math.sin(angle) * speed - 130,
+          ),
+        ),
+      );
+    }
+    Sfx.death();
+  }
+
   void _checkGoal() {
+    if (!_level.goal.visible) {
+      return;
+    }
     if (!_player.rect.overlaps(_level.goal.rect.deflate(4))) {
       return;
     }
 
+    Sfx.goal();
+
     if (_levelIndex == _levels.length - 1) {
-      _transitioning = true;
-      _ticker.stop();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) {
-          return;
-        }
-        Navigator.of(context).pushReplacementNamed('/win');
-      });
+      _finishRun('/win');
+      return;
+    }
+
+    LevelProgress.unlockThrough(_levelIndex + 2);
+    if (_levelIndex == _fakeWinLevelIndex && _levels.length > 15) {
+      _finishRun('/fakewin');
       return;
     }
 
@@ -311,14 +472,44 @@ class _GameScreenState extends State<GameScreen>
     _loadLevel(_levelIndex + 1);
   }
 
+  void _finishRun(String route) {
+    _transitioning = true;
+    _ticker.stop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pushReplacementNamed(route);
+    });
+  }
+
   void _restartLevel() {
+    // A manual restart is a fresh attempt: it also clears the checkpoint.
+    _checkpointSpawn = null;
+    _checkpointId = null;
     _loadLevel(_levelIndex);
   }
 
-  void _queueJump() {
-    setState(() {
-      _jumpBuffer = 0.13;
-    });
+  void _handleKey(KeyEvent event) {
+    if (event is KeyRepeatEvent) {
+      return;
+    }
+    final key = event.logicalKey;
+    final isDown = event is KeyDownEvent;
+
+    if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.keyA) {
+      setState(() => _leftHeld = isDown);
+    } else if (key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.keyD) {
+      setState(() => _rightHeld = isDown);
+    } else if (key == LogicalKeyboardKey.space ||
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.keyW) {
+      setState(isDown ? _onJumpPressed : _onJumpReleased);
+    } else if (key == LogicalKeyboardKey.keyR && isDown) {
+      setState(_restartLevel);
+    }
   }
 
   double _cameraFor(Size size) {
@@ -328,54 +519,77 @@ class _GameScreenState extends State<GameScreen>
     final visibleWorldWidth = worldHeight * size.width / size.height;
     final maxCamera = math.max(0.0, _level.width - visibleWorldWidth);
     final desired = _player.center.dx - visibleWorldWidth * 0.42;
-    return desired.clamp(0.0, maxCamera).toDouble();
+    var camera = desired.clamp(0.0, maxCamera).toDouble();
+    if (_deathTimer > 0) {
+      final strength = 7 * (_deathTimer / _deathDuration);
+      camera += math.sin(_deathElapsed * 55) * strength;
+    }
+    return camera;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _GameTopBar(
-              levelText: 'Level ${_levelIndex + 1} / ${_levels.length}',
-              title: _level.title,
-              onRestart: () => setState(_restartLevel),
-              onMenu: () {
-                Navigator.of(
-                  context,
-                ).pushNamedAndRemoveUntil('/levels', (_) => false);
-              },
-            ),
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = constraints.biggest;
-                  return ClipRect(
-                    child: CustomPaint(
-                      painter: GamePainter(
-                        level: _level,
-                        player: _player,
-                        playerColor: GameEconomy.selectedSkin.color,
-                        cameraX: _cameraFor(size),
-                      ),
-                      child: const SizedBox.expand(),
-                    ),
-                  );
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKey,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _GameTopBar(
+                levelText: 'Level ${_levelIndex + 1} / ${_levels.length}',
+                title: _level.title,
+                deaths: _deathsThisLevel,
+                onRestart: () {
+                  setState(_restartLevel);
+                  _focusNode.requestFocus();
+                },
+                onMenu: () {
+                  Navigator.of(
+                    context,
+                  ).pushNamedAndRemoveUntil('/levels', (_) => false);
                 },
               ),
-            ),
-            _ControlPanel(
-              leftHeld: _leftHeld,
-              rightHeld: _rightHeld,
-              onLeftDown: () => setState(() => _leftHeld = true),
-              onLeftUp: () => setState(() => _leftHeld = false),
-              onRightDown: () => setState(() => _rightHeld = true),
-              onRightUp: () => setState(() => _rightHeld = false),
-              onJumpDown: _queueJump,
-            ),
-          ],
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final size = constraints.biggest;
+                    return Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: (_) => _focusNode.requestFocus(),
+                      child: ClipRect(
+                        child: CustomPaint(
+                          painter: GamePainter(
+                            level: _level,
+                            player: _player,
+                            cameraX: _cameraFor(size),
+                            particles: _particles,
+                            deathProgress: _deathTimer > 0
+                                ? _deathTimer / _deathDuration
+                                : 0,
+                            hidePlayer: _deathTimer > 0,
+                          ),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              _ControlPanel(
+                leftHeld: _leftHeld,
+                rightHeld: _rightHeld,
+                onLeftDown: () => setState(() => _leftHeld = true),
+                onLeftUp: () => setState(() => _leftHeld = false),
+                onRightDown: () => setState(() => _rightHeld = true),
+                onRightUp: () => setState(() => _rightHeld = false),
+                onJumpDown: () => setState(_onJumpPressed),
+                onJumpUp: () => setState(_onJumpReleased),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -386,12 +600,14 @@ class _GameTopBar extends StatelessWidget {
   const _GameTopBar({
     required this.levelText,
     required this.title,
+    required this.deaths,
     required this.onRestart,
     required this.onMenu,
   });
 
   final String levelText;
   final String title;
+  final int deaths;
   final VoidCallback onRestart;
   final VoidCallback onMenu;
 
@@ -435,6 +651,39 @@ class _GameTopBar extends StatelessWidget {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.heart_broken_rounded,
+                  size: 18,
+                  color: Color(0xFFDC2626),
+                ),
+                const SizedBox(width: 3),
+                Text(
+                  '$deaths',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ValueListenableBuilder<bool>(
+            valueListenable: Sfx.muted,
+            builder: (context, muted, _) {
+              return IconButton(
+                tooltip: muted ? 'Unmute' : 'Mute',
+                onPressed: () => Sfx.muted.value = !muted,
+                icon: Icon(
+                  muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                ),
+              );
+            },
+          ),
           IconButton(
             tooltip: 'Restart',
             onPressed: onRestart,
@@ -455,6 +704,7 @@ class _ControlPanel extends StatelessWidget {
     required this.onRightDown,
     required this.onRightUp,
     required this.onJumpDown,
+    required this.onJumpUp,
   });
 
   final bool leftHeld;
@@ -464,6 +714,7 @@ class _ControlPanel extends StatelessWidget {
   final VoidCallback onRightDown;
   final VoidCallback onRightUp;
   final VoidCallback onJumpDown;
+  final VoidCallback onJumpUp;
 
   @override
   Widget build(BuildContext context) {
@@ -495,7 +746,7 @@ class _ControlPanel extends StatelessWidget {
             active: false,
             large: true,
             onDown: onJumpDown,
-            onUp: () {},
+            onUp: onJumpUp,
           ),
         ],
       ),
@@ -529,11 +780,14 @@ class _HoldButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
-      child: GestureDetector(
+      child: Listener(
         behavior: HitTestBehavior.opaque,
-        onTapDown: (_) => onDown(),
-        onTapUp: (_) => onUp(),
-        onTapCancel: onUp,
+        // Raw pointer events (not tap gestures) so a held button keeps firing
+        // when the finger drifts past the touch slop — a tap recognizer would
+        // cancel and silently stop movement mid-jump.
+        onPointerDown: (_) => onDown(),
+        onPointerUp: (_) => onUp(),
+        onPointerCancel: (_) => onUp(),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 80),
           width: size,
