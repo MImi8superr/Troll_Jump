@@ -700,6 +700,153 @@ List<Level> buildLevels() {
         FakeGoalTrap(revealSpikeIds: ['fg23-a', 'fg23-b']),
       ],
     ),
+    // Level 18's leap of faith, replayed blind: the bridge breaks in the
+    // dark, the spike carpet below is (mostly) a lie, a hunter hides in the
+    // crowd, and the friendliest light in the darkness is a fake lantern.
+    Level(
+      number: 24,
+      title: 'Blind Faith',
+      width: 2700,
+      playerStart: Offset(64, 380 - playerSize.height),
+      platforms: [
+        _platform('start-block-24', 0, 380, 560, height: 220),
+        _platform('br-24a', 620, 380, 160),
+        _platform('br-24b', 840, 380, 160, cracked: true),
+        _ground('pit-floor-24', 560, 900),
+        _platform('rb-24a', 1460, 340, 740, height: 260),
+        _platform('rb-24b', 2340, 340, 360, height: 260),
+      ],
+      spikes: [
+        // The carpet of lies on the pit floor.
+        _upSpike('bf-1', 600, dangerous: false),
+        _upSpike('bf-2', 660, dangerous: false),
+        _upSpike('bf-3', 720, dangerous: false),
+        _upSpike('bf-4', 790, dangerous: false),
+        _upSpike('bf-5', 860, dangerous: false),
+        _upSpike('bf-6', 930, dangerous: false),
+        _upSpike('bf-7', 1060, dangerous: false),
+        _upSpike('bf-8', 1120, dangerous: false),
+        _upSpike('bf-9', 1240, dangerous: false),
+        // Hidden in the crowd, woken in the dark: the hunter.
+        _upSpike('chaser-24', 1100),
+        // Under the fake lantern on the upper ledge.
+        Spike(
+          id: 'fl-24a',
+          rect: const Rect.fromLTWH(1670, 340 - 36, 40, 36),
+          visible: false,
+          dangerous: false,
+        ),
+        Spike(
+          id: 'fl-24b',
+          rect: const Rect.fromLTWH(1714, 340 - 36, 40, 36),
+          visible: false,
+          dangerous: false,
+        ),
+      ],
+      jumpPads: [
+        // The wild bounce out of the pit, aimed in the dark.
+        JumpPad(
+          id: 'launch-24',
+          rect: const Rect.fromLTWH(1330, floorY - 14, 72, 14),
+        ),
+      ],
+      iceZones: [
+        // An ice sheet on the upper ledge, sliding toward the gap — blind.
+        IceZone(id: 'ice-24', rect: const Rect.fromLTWH(1900, 340 - 24, 300, 24)),
+      ],
+      darkZones: [_darkZone('dz-24', 450, 2000)],
+      checkpoints: [
+        Checkpoint(
+          id: 'cp-24a',
+          rect: const Rect.fromLTWH(500, 380 - 58, 34, 58),
+        ),
+        _checkpoint('cp-24b', 1160),
+        // The warmest glow in the darkness. It is not your friend.
+        Checkpoint(
+          id: 'cp-24fake',
+          rect: const Rect.fromLTWH(1700, 340 - 58, 34, 58),
+          fake: true,
+        ),
+        Checkpoint(
+          id: 'cp-24c',
+          rect: const Rect.fromLTWH(1830, 340 - 58, 34, 58),
+        ),
+      ],
+      goal: Goal(rect: const Rect.fromLTWH(2570, 340 - 86, 54, 86)),
+      traps: [
+        BreakPlatformTrap(platformId: 'br-24b', triggerX: 850, delay: 0.22),
+        ChasingSpikeTrap(
+          spikeId: 'chaser-24',
+          triggerX: 1005,
+          minX: 640,
+          maxX: 1290,
+          speed: 185,
+        ),
+        FakeCheckpointTrap(
+          checkpointId: 'cp-24fake',
+          revealSpikeIds: ['fl-24a', 'fl-24b'],
+        ),
+      ],
+    ),
+    // The final exam: four chambers of callbacks — the classics, the
+    // mirrors, the stacked trifecta of zones, and a goal that takes one
+    // last dive. The real flag waits quietly behind you. No more tricks.
+    Level(
+      number: 25,
+      title: 'The Last Laugh',
+      width: 3000,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-25', 0, 2900),
+        _platform('r-25a', 560, 310, 220),
+        _platform('r-25b', 820, 310, 200),
+      ],
+      spikes: [
+        // Chamber 1: the classics.
+        _upSpike('slide-25', 250),
+        _downSpike('drop-25', 400, 110),
+        // Chamber 2: the mirror corridor and its lids.
+        _downSpike('lid-25a', 600, 332),
+        _downSpike('lid-25b', 680, 332),
+        _downSpike('lid-25c', 730, 332),
+        _downSpike('lid-25d', 860, 332),
+        _downSpike('lid-25e', 940, 332),
+        _upSpike('mimic-25', 990),
+        // The twin arena, mirrored around x=1300.
+        _upSpike('arena-25a', 1150),
+        _upSpike('arena-25b', 1450),
+        // Chamber 3: one spike in the heart of the trifecta.
+        _upSpike('trifecta-25', 1900),
+        // Under nothing: chamber 4 is honest. Almost.
+      ],
+      iceZones: [_iceZone('ice-25', 1750, 300)],
+      reverseZones: [_reverseZone('rz-25', 1750, 300)],
+      darkZones: [_darkZone('dz-25', 1700, 550)],
+      checkpoints: [
+        _checkpoint('cp-25a', 520),
+        _checkpoint('cp-25b', 1650),
+        _checkpoint('cp-25c', 2280),
+      ],
+      decoyGoal: Goal(rect: const Rect.fromLTWH(2700, floorY - 86, 54, 86)),
+      goal: _goal(2450, visible: false),
+      traps: [
+        SlideSpikeTrap(
+          spikeId: 'slide-25',
+          triggerDistance: 100,
+          moveDistance: 70,
+          speed: 380,
+        ),
+        DropSpikeTrap(spikeId: 'drop-25', triggerX: 350),
+        MimicSpikeTrap(
+          spikeId: 'mimic-25',
+          triggerX: 570,
+          minX: 590,
+          maxX: 1000,
+        ),
+        EvilTwinTrap(mirrorX: 1300, range: 300),
+        FleeingGoalTrap(cliffX: 2900, retreatDistance: 80),
+      ],
+    ),
   ];
 }
 

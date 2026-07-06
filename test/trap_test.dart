@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -87,9 +88,9 @@ void main() {
       expect(spawn.dx, 600 + (34 - playerSize.width) / 2);
     });
 
-    test('levels 13-15 and 17-23 have a checkpoint', () {
+    test('levels 13-15 and 17-25 have a checkpoint', () {
       final levels = buildLevels();
-      for (final number in [13, 14, 15, 17, 18, 19, 20, 21, 22, 23]) {
+      for (final number in [13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25]) {
         final level = levels.firstWhere((level) => level.number == number);
         expect(level.checkpoints, isNotEmpty, reason: 'level $number');
       }
@@ -272,10 +273,47 @@ void main() {
     });
   });
 
+  group('finale compositions (levels 24-25)', () {
+    test('level 24 hides its fake lantern inside the darkness', () {
+      final level = buildLevels().firstWhere((level) => level.number == 24);
+      final zone = level.darkZones.single;
+      final fake = level.checkpoints.singleWhere((cp) => cp.fake);
+      // The fake lantern must glow inside the dark zone — that's the lie.
+      expect(zone.rect.overlaps(fake.rect), isTrue);
+      // And the hunter hides within the fake-spike carpet's x-range.
+      final hunter = level.spikeById('chaser-24')!;
+      final fakes = level.spikes.where((spike) => !spike.dangerous);
+      final carpetLeft =
+          fakes.map((spike) => spike.rect.left).reduce(math.min);
+      final carpetRight =
+          fakes.map((spike) => spike.rect.right).reduce(math.max);
+      expect(hunter.rect.left, greaterThan(carpetLeft));
+      expect(hunter.rect.right, lessThan(carpetRight));
+    });
+
+    test('level 25 stacks ice, reverse, and darkness in one place', () {
+      final level = buildLevels().firstWhere((level) => level.number == 25);
+      final ice = level.iceZones.single.rect;
+      final reverse = level.reverseZones.single.rect;
+      final dark = level.darkZones.single.rect;
+      expect(ice.overlaps(reverse), isTrue);
+      expect(dark.overlaps(ice), isTrue);
+      expect(dark.overlaps(reverse), isTrue);
+      // The trifecta spike sits inside all three.
+      final spike = level.spikeById('trifecta-25')!;
+      expect(ice.left <= spike.rect.left && spike.rect.right <= ice.right,
+          isTrue);
+      // The real goal hides behind the decoy that dives off the cliff.
+      expect(level.goal.visible, isFalse);
+      expect(level.decoyGoal, isNotNull);
+      expect(level.goal.rect.right, lessThan(level.decoyGoal!.rect.left));
+    });
+  });
+
   group('level data sanity', () {
     test('all levels are internally consistent', () {
       final levels = buildLevels();
-      expect(levels.length, 23);
+      expect(levels.length, 25);
 
       for (final level in levels) {
         // The goal must sit inside the level bounds.
