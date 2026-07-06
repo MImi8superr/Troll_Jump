@@ -609,6 +609,97 @@ List<Level> buildLevels() {
         FakeGoalTrap(revealSpikeIds: ['fg21-a', 'fg21-b']),
       ],
     ),
+    Level(
+      number: 22,
+      title: 'Mirror Match',
+      width: 2400,
+      playerStart: _start(),
+      platforms: [
+        _ground('ground', 0, 2400),
+        // A low roof over the mimic corridor: its ceiling spikes make full
+        // jumps lethal, so the mimic must be cleared with measured hops.
+        _platform('roof-22a', 420, 310, 220),
+        _platform('roof-22b', 700, 310, 220),
+        _platform('roof-22c', 980, 310, 140),
+      ],
+      spikes: [
+        _upSpike('warm-22', 300),
+        // Red light, green light: moves only while YOU move.
+        _upSpike('mimic-22', 1000),
+        _downSpike('lid-22a', 440, 332),
+        _downSpike('lid-22b', 520, 332),
+        _downSpike('lid-22c', 600, 332),
+        _downSpike('lid-22d', 720, 332),
+        _downSpike('lid-22e', 800, 332),
+        _downSpike('lid-22f', 880, 332),
+        _downSpike('lid-22g', 1000, 332),
+        _downSpike('lid-22h', 1060, 332),
+        // The twin arena: two spikes mirrored around x=1625.
+        _upSpike('arena-22a', 1450),
+        _upSpike('arena-22b', 1800),
+      ],
+      reverseZones: [_reverseZone('rz-22', 1650, 250)],
+      checkpoints: [
+        _checkpoint('cp-22a', 380),
+        _checkpoint('cp-22b', 1180),
+        _checkpoint('cp-22c', 2020),
+      ],
+      goal: _goal(2250),
+      traps: [
+        MimicSpikeTrap(
+          spikeId: 'mimic-22',
+          triggerX: 430,
+          minX: 460,
+          maxX: 1010,
+        ),
+        EvilTwinTrap(mirrorX: 1625),
+        GoalRetreatTrap(triggerDistance: 90, retreatDistance: 90, speed: 260),
+      ],
+    ),
+    Level(
+      number: 23,
+      title: 'Lights Out',
+      width: 2500,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-23a', 0, 1020),
+        _ground('g-23b', 1160, 1340),
+      ],
+      spikes: [
+        _upSpike('warm-23', 380),
+        // The slalom, memorized by lightning.
+        _upSpike('dark-23a', 650),
+        _upSpike('dark-23b', 800),
+        _upSpike('dark-23c', 950),
+        // The hunter in the dark: visible only inside the light circle.
+        _upSpike('hunter-23', 1750),
+        _downSpike('drop-23', 2130, 110),
+        // Under the glowing decoy.
+        _hiddenUpSpike('fg23-a', 2170),
+        _hiddenUpSpike('fg23-b', 2214),
+      ],
+      darkZones: [_darkZone('dz-23', 500, 1900)],
+      checkpoints: [
+        // Lanterns: each checkpoint glows through the darkness.
+        _checkpoint('cp-23a', 560),
+        _checkpoint('cp-23b', 1200),
+        _checkpoint('cp-23c', 1950),
+      ],
+      // The inviting glow in the deep dark is, of course, a lie.
+      decoyGoal: Goal(rect: const Rect.fromLTWH(2200, floorY - 86, 54, 86)),
+      goal: _goal(2050, visible: false),
+      traps: [
+        ChasingSpikeTrap(
+          spikeId: 'hunter-23',
+          triggerX: 1250,
+          minX: 1230,
+          maxX: 1780,
+          speed: 185,
+        ),
+        DropSpikeTrap(spikeId: 'drop-23', triggerX: 2065),
+        FakeGoalTrap(revealSpikeIds: ['fg23-a', 'fg23-b']),
+      ],
+    ),
   ];
 }
 
@@ -681,6 +772,11 @@ IceZone _iceZone(String id, double x, double width) {
   // A thin sheet sitting on the floor: slippery only while the player's
   // feet are in it, so jumping briefly restores full air control.
   return IceZone(id: id, rect: Rect.fromLTWH(x, floorY - 24, width, 24));
+}
+
+DarkZone _darkZone(String id, double x, double width) {
+  // Full-height: darkness rules the whole screen while the player is inside.
+  return DarkZone(id: id, rect: Rect.fromLTWH(x, 0, width, worldHeight));
 }
 
 Platform _wall(String id, double x, double height, {bool solid = true}) {

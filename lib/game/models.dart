@@ -51,6 +51,7 @@ class Level {
     this.checkpoints = const [],
     this.reverseZones = const [],
     this.iceZones = const [],
+    this.darkZones = const [],
     this.decoyGoal,
   });
 
@@ -68,6 +69,7 @@ class Level {
   final List<Checkpoint> checkpoints;
   final List<ReverseZone> reverseZones;
   final List<IceZone> iceZones;
+  final List<DarkZone> darkZones;
   final Goal? decoyGoal;
 
   Level copy() {
@@ -86,6 +88,7 @@ class Level {
       checkpoints: checkpoints.map((cp) => cp.copy()).toList(),
       reverseZones: reverseZones.map((zone) => zone.copy()).toList(),
       iceZones: iceZones.map((zone) => zone.copy()).toList(),
+      darkZones: darkZones.map((zone) => zone.copy()).toList(),
       decoyGoal: decoyGoal?.copy(),
     );
   }
@@ -144,6 +147,9 @@ class Level {
       checkpoint.update(dt);
     }
     for (final zone in reverseZones) {
+      zone.update(dt);
+    }
+    for (final zone in darkZones) {
       zone.update(dt);
     }
     goal.update(dt);
@@ -472,6 +478,43 @@ class IceZone {
   final Rect rect;
 
   IceZone copy() => IceZone(id: id, rect: rect);
+}
+
+/// While the player is inside, the world is swallowed by darkness except a
+/// light circle around the player, lantern glows at checkpoints, and glowing
+/// goals. Every [flashPeriod] seconds a lightning flash reveals everything
+/// for [flashDuration] — memorize, then move.
+class DarkZone {
+  DarkZone({
+    required this.id,
+    required this.rect,
+    this.lightRadius = 140,
+    this.flashPeriod = 3.2,
+    this.flashDuration = 0.16,
+  });
+
+  final String id;
+  final Rect rect;
+  final double lightRadius;
+  final double flashPeriod;
+  final double flashDuration;
+  double time = 0;
+
+  bool get flashing => time % flashPeriod < flashDuration;
+
+  DarkZone copy() {
+    return DarkZone(
+      id: id,
+      rect: rect,
+      lightRadius: lightRadius,
+      flashPeriod: flashPeriod,
+      flashDuration: flashDuration,
+    );
+  }
+
+  void update(double dt) {
+    time += dt;
+  }
 }
 
 /// A region that inverts left/right input while the player is inside.
@@ -1181,5 +1224,105 @@ class FleeingGoalTrap extends Trap {
       retreatSpeed: retreatSpeed,
       fleeSpeed: fleeSpeed,
     );
+  }
+}
+
+/// Red light, green light: a spike that slides toward the player at a
+/// fraction of the player's OWN current speed — and freezes the instant
+/// they stop. Your movement is what feeds it.
+class MimicSpikeTrap extends Trap {
+  MimicSpikeTrap({
+    required this.spikeId,
+    required this.triggerX,
+    required this.minX,
+    required this.maxX,
+    this.speedFactor = 0.9,
+  }) : super(TrapTriggerType.playerXPosition);
+
+  final String spikeId;
+  final double triggerX;
+  final double minX;
+  final double maxX;
+  final double speedFactor;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final spike = level.spikeById(spikeId);
+    if (spike == null) {
+      return;
+    }
+    if (!triggered) {
+      if (player.center.dx < triggerX) {
+        return;
+      }
+      triggered = true;
+      spike.flash = 0.5;
+    }
+    final playerSpeed = player.velocity.dx.abs();
+    if (playerSpeed < 5) {
+      return; // You freeze, it freezes.
+    }
+    final delta = player.center.dx - spike.rect.center.dx;
+    if (delta.abs() < 1) {
+      return;
+    }
+    final step = delta.sign * playerSpeed * speedFactor * dt;
+    final newLeft = (spike.rect.left + step).clamp(minX, maxX);
+    spike.rect = Rect.fromLTWH(
+      newLeft,
+      spike.rect.top,
+      spike.rect.width,
+      spike.rect.height,
+    );
+  }
+
+  @override
+  Trap copy() {
+    return MimicSpikeTrap(
+      spikeId: spikeId,
+      triggerX: triggerX,
+      minX: minX,
+      maxX: maxX,
+      speedFactor: speedFactor,
+    );
+  }
+}
+
+/// A hostile mirror image of the player. While the player is within [range]
+/// of [mirrorX], the twin stands at the player's position reflected across
+/// that line — walk toward it and it walks toward you. It stays on the
+/// ground, so the only way past is over its head, timed through the meeting
+/// point at the mirror line. Touching it is death (the engine checks
+/// [twinRect] during hazard collision; the painter draws it).
+class EvilTwinTrap extends Trap {
+  EvilTwinTrap({required this.mirrorX, this.range = 400})
+    : super(TrapTriggerType.playerProximity);
+
+  final double mirrorX;
+  final double range;
+
+  Rect? twinRect(Player player) {
+    if ((player.center.dx - mirrorX).abs() > range) {
+      return null;
+    }
+    final twinCenterX = 2 * mirrorX - player.center.dx;
+    return Rect.fromLTWH(
+      twinCenterX - playerSize.width / 2,
+      floorY - playerSize.height,
+      playerSize.width,
+      playerSize.height,
+    );
+  }
+
+  @override
+  void update(Level level, Player player, double dt) {
+    if (!triggered && twinRect(player) != null) {
+      triggered = true; // The twin steps out of the mirror: play the sting.
+    }
+  }
+
+  @override
+  Trap copy() {
+    return EvilTwinTrap(mirrorX: mirrorX, range: range);
   }
 }
