@@ -400,6 +400,7 @@ class Checkpoint {
     this.flash = 0,
     this.fake = false,
     this.visible = true,
+    this.spawnOverride,
   });
 
   final String id;
@@ -409,10 +410,17 @@ class Checkpoint {
   final bool fake;
   bool visible;
 
-  Offset get spawnPosition => Offset(
-    rect.center.dx - playerSize.width / 2,
-    rect.bottom - playerSize.height,
-  );
+  /// Where deaths respawn after touching this checkpoint. Defaults to the
+  /// ground under the flag; a floating flag (grabbed mid-jump) must override
+  /// this with a safe spot on solid ground.
+  final Offset? spawnOverride;
+
+  Offset get spawnPosition =>
+      spawnOverride ??
+      Offset(
+        rect.center.dx - playerSize.width / 2,
+        rect.bottom - playerSize.height,
+      );
 
   Checkpoint copy() {
     return Checkpoint(
@@ -422,6 +430,7 @@ class Checkpoint {
       flash: flash,
       fake: fake,
       visible: visible,
+      spawnOverride: spawnOverride,
     );
   }
 

@@ -365,7 +365,10 @@ class _GameScreenState extends State<GameScreen>
       if (checkpoint.fake || !checkpoint.visible) {
         continue;
       }
-      if (!checkpoint.reached &&
+      // Checkpoints re-arm in both directions: touching any flag (even one
+      // already reached) makes it the current spawn. Essential for levels
+      // with a return trip, where progress runs right-to-left.
+      if (_checkpointId != checkpoint.id &&
           _player.rect.overlaps(checkpoint.rect.inflate(4))) {
         checkpoint.reached = true;
         checkpoint.flash = 0.6;

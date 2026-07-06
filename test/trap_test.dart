@@ -87,11 +87,35 @@ void main() {
       expect(spawn.dx, 600 + (34 - playerSize.width) / 2);
     });
 
-    test('levels 13-15 and 17-20 have a checkpoint', () {
+    test('levels 13-15 and 17-21 have a checkpoint', () {
       final levels = buildLevels();
-      for (final number in [13, 14, 15, 17, 18, 19, 20]) {
+      for (final number in [13, 14, 15, 17, 18, 19, 20, 21]) {
         final level = levels.firstWhere((level) => level.number == number);
         expect(level.checkpoints, isNotEmpty, reason: 'level $number');
+      }
+    });
+
+    test('every real checkpoint spawn stands on solid ground', () {
+      // Guards against air-spawn death loops — especially the floating
+      // checkpoint in level 21, whose spawn is overridden to the far ledge.
+      for (final level in buildLevels()) {
+        for (final checkpoint in level.checkpoints.where((c) => !c.fake)) {
+          final spawnRect = checkpoint.spawnPosition & playerSize;
+          final grounded = level.platforms.any(
+            (platform) =>
+                platform.solid &&
+                (platform.rect.top - spawnRect.bottom).abs() <= 1 &&
+                spawnRect.right > platform.rect.left &&
+                spawnRect.left < platform.rect.right,
+          );
+          expect(
+            grounded,
+            isTrue,
+            reason:
+                'checkpoint ${checkpoint.id} in level ${level.number} '
+                'would respawn the player in the air',
+          );
+        }
       }
     });
   });
@@ -176,7 +200,7 @@ void main() {
   group('level data sanity', () {
     test('all levels are internally consistent', () {
       final levels = buildLevels();
-      expect(levels.length, 20);
+      expect(levels.length, 21);
 
       for (final level in levels) {
         // The goal must sit inside the level bounds.
