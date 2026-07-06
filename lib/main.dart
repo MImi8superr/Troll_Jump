@@ -42,6 +42,8 @@ class TrollRunnerApp extends StatelessWidget {
                 return GameScreen(initialLevelIndex: initialLevelIndex);
               case '/levels':
                 return const LevelSelectScreen();
+              case '/shop':
+                return const ShopScreen();
               case '/fakewin':
                 return const FakeWinScreen();
               case '/win':

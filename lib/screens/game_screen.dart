@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../game/collision.dart';
+import '../game/economy.dart';
 import '../game/game_painter.dart';
 import '../game/game_stats.dart';
 import '../game/level_progress.dart';
@@ -62,7 +63,6 @@ class _GameScreenState extends State<GameScreen>
   Offset? _checkpointSpawn;
   String? _checkpointId;
   Duration? _lastTick;
-  final math.Random _random = math.Random();
 
   final List<DeathParticle> _particles = [];
   final math.Random _random = math.Random();
@@ -383,6 +383,39 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
+  /// With a small chance per level load, places a bonus coin on a random
+  /// solid platform. Collecting it funds the skin shop's spin wheel.
+  void _spawnRareCoin() {
+    if (_random.nextDouble() >= _coinSpawnChance) {
+      return;
+    }
+    final candidates = _level.platforms
+        .where((platform) => platform.solid && platform.rect.width >= 80)
+        .toList();
+    if (candidates.isEmpty) {
+      return;
+    }
+    final platform = candidates[_random.nextInt(candidates.length)];
+    final x =
+        platform.rect.left +
+        20 +
+        _random.nextDouble() * (platform.rect.width - 60);
+    _level.coins.add(
+      Coin(id: 'rare-coin', rect: Rect.fromLTWH(x, platform.rect.top - 42, 22, 22)),
+    );
+  }
+
+  void _collectCoins() {
+    for (final coin in _level.coins) {
+      if (coin.collected || !_player.rect.overlaps(coin.rect.inflate(4))) {
+        continue;
+      }
+      coin.collected = true;
+      GameEconomy.addCoins(coin.value);
+      Sfx.checkpoint();
+    }
+  }
+
   /// Plays the trap sound whenever any trap fired this frame, regardless of
   /// which callback (proximity, jump, landing, position) triggered it.
   void _notifyTrapSounds() {
@@ -468,7 +501,6 @@ class _GameScreenState extends State<GameScreen>
       return;
     }
 
-    LevelProgress.unlockThrough(_levelIndex + 2);
     _loadLevel(_levelIndex + 1);
   }
 
@@ -564,6 +596,7 @@ class _GameScreenState extends State<GameScreen>
                           painter: GamePainter(
                             level: _level,
                             player: _player,
+                            playerColor: GameEconomy.selectedSkin.color,
                             cameraX: _cameraFor(size),
                             particles: _particles,
                             deathProgress: _deathTimer > 0

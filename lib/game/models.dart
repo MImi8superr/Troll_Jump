@@ -137,6 +137,9 @@ class Level {
     for (final pad in jumpPads) {
       pad.update(dt);
     }
+    for (final coin in coins) {
+      coin.update(dt);
+    }
     for (final checkpoint in checkpoints) {
       checkpoint.update(dt);
     }
@@ -424,6 +427,29 @@ class Checkpoint {
 
   void update(double dt) {
     flash = math.max(0, flash - dt);
+  }
+}
+
+/// A collectible coin for the shop economy. Rarely spawned on level load;
+/// spins in place until the player picks it up.
+class Coin {
+  Coin({required this.id, required this.rect, this.value = 3});
+
+  final String id;
+  Rect rect;
+  final int value;
+  bool collected = false;
+  double spin = 0;
+
+  Coin copy() {
+    final copy = Coin(id: id, rect: rect, value: value);
+    copy.collected = collected;
+    copy.spin = spin;
+    return copy;
+  }
+
+  void update(double dt) {
+    spin += dt * 5;
   }
 }
 
