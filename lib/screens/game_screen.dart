@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
+import '../game/coin_spawner.dart';
 import '../game/collision.dart';
 import '../game/economy.dart';
 import '../game/game_painter.dart';
@@ -29,7 +30,6 @@ class _GameScreenState extends State<GameScreen>
   static const double _gravity = 1450;
   static const double _jumpVelocity = -570;
   static const double _maxFallSpeed = 900;
-  static const double _coinSpawnChance = 0.08;
 
   /// Grace period after walking off a ledge during which a jump still works.
   static const double _coyoteDuration = 0.1;
@@ -63,6 +63,11 @@ class _GameScreenState extends State<GameScreen>
   Offset? _checkpointSpawn;
   String? _checkpointId;
   Duration? _lastTick;
+  bool _hasLoadedLevel = false;
+
+  /// Spot of this level entry's rare coin; null once collected (or when the
+  /// entry roll came up empty).
+  Rect? _rareCoinRect;
 
   final List<DeathParticle> _particles = [];
   final math.Random _random = math.Random();
@@ -85,6 +90,7 @@ class _GameScreenState extends State<GameScreen>
 
   void _loadLevel(int index, {bool keepCheckpoint = false}) {
     final restoreCheckpoint = keepCheckpoint && index == _levelIndex;
+    final freshEntry = !_hasLoadedLevel || index != _levelIndex;
     if (index != _levelIndex) {
       _deathsThisLevel = 0;
     }
@@ -94,8 +100,17 @@ class _GameScreenState extends State<GameScreen>
     }
 
     _levelIndex = index;
+    _hasLoadedLevel = true;
     _level = _levels[index].copy();
-    _spawnRareCoin();
+    // The rare coin is rolled once per level ENTRY — never re-rolled on
+    // death respawns or manual restarts, so it can't be farmed. An
+    // uncollected coin keeps its spot across deaths within the attempt.
+    if (freshEntry) {
+      _rareCoinRect = rollRareCoin(_level, _random)?.rect;
+    }
+    if (_rareCoinRect != null) {
+      _level.coins.add(Coin(id: 'rare-coin', rect: _rareCoinRect!));
+    }
     _player = Player(start: _level.playerStart);
     if (restoreCheckpoint && _checkpointSpawn != null) {
       _player.position = _checkpointSpawn!;
@@ -386,34 +401,15 @@ class _GameScreenState extends State<GameScreen>
     }
   }
 
-  /// With a small chance per level load, places a bonus coin on a random
-  /// solid platform. Collecting it funds the skin shop's spin wheel.
-  void _spawnRareCoin() {
-    if (_random.nextDouble() >= _coinSpawnChance) {
-      return;
-    }
-    final candidates = _level.platforms
-        .where((platform) => platform.solid && platform.rect.width >= 80)
-        .toList();
-    if (candidates.isEmpty) {
-      return;
-    }
-    final platform = candidates[_random.nextInt(candidates.length)];
-    final x =
-        platform.rect.left +
-        20 +
-        _random.nextDouble() * (platform.rect.width - 60);
-    _level.coins.add(
-      Coin(id: 'rare-coin', rect: Rect.fromLTWH(x, platform.rect.top - 42, 22, 22)),
-    );
-  }
-
   void _collectCoins() {
     for (final coin in _level.coins) {
       if (coin.collected || !_player.rect.overlaps(coin.rect.inflate(4))) {
         continue;
       }
       coin.collected = true;
+      if (coin.id == 'rare-coin') {
+        _rareCoinRect = null; // Banked: don't respawn it after a death.
+      }
       GameEconomy.addCoins(coin.value);
       Sfx.checkpoint();
     }

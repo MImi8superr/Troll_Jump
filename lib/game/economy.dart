@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PlayerSkin {
   const PlayerSkin({
@@ -49,6 +50,10 @@ class GameEconomy {
 
   static const int spinCost = 5;
 
+  static const String _coinsKey = 'economy_coins';
+  static const String _ownedKey = 'economy_owned_skins';
+  static const String _selectedKey = 'economy_selected_skin';
+
   static const List<PlayerSkin> skins = [
     PlayerSkin(id: 'blue', name: 'Classic Blue', color: Color(0xFF2563EB)),
     PlayerSkin(id: 'lime', name: 'Toxic Lime', color: Color(0xFF65A30D), price: 4),
@@ -69,11 +74,48 @@ class GameEconomy {
     );
   }
 
+  /// Restores the persisted wallet, owned skins, and selected skin. Safe to
+  /// call before [runApp]; failures (e.g. missing platform plugin in tests)
+  /// leave the fresh default state untouched.
+  static Future<void> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final coins = prefs.getInt(_coinsKey);
+      final owned = prefs.getStringList(_ownedKey);
+      final selected = prefs.getString(_selectedKey);
+      if (coins == null && owned == null && selected == null) {
+        return;
+      }
+      final ownedSet = {...?owned, 'blue'};
+      state.value = EconomyState(
+        coins: math.max(0, coins ?? 0),
+        ownedSkinIds: ownedSet,
+        selectedSkinId:
+            selected != null && ownedSet.contains(selected) ? selected : 'blue',
+      );
+    } catch (_) {
+      // Keep the default state if storage is unavailable.
+    }
+  }
+
+  static Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final current = state.value;
+      await prefs.setInt(_coinsKey, current.coins);
+      await prefs.setStringList(_ownedKey, current.ownedSkinIds.toList());
+      await prefs.setString(_selectedKey, current.selectedSkinId);
+    } catch (_) {
+      // Non-fatal: the wallet simply won't survive this session.
+    }
+  }
+
   static void addCoins(int amount) {
     state.value = state.value.copyWith(
       coins: state.value.coins + amount,
       lastSpinResult: state.value.lastSpinResult,
     );
+    _persist();
   }
 
   static bool buySkin(PlayerSkin skin) {
@@ -88,6 +130,7 @@ class GameEconomy {
       selectedSkinId: skin.id,
       lastSpinResult: current.lastSpinResult,
     );
+    _persist();
     return true;
   }
 
@@ -99,6 +142,7 @@ class GameEconomy {
       selectedSkinId: skin.id,
       lastSpinResult: state.value.lastSpinResult,
     );
+    _persist();
   }
 
   static bool spinWheel() {
@@ -116,6 +160,7 @@ class GameEconomy {
     final roll = _random.nextInt(100);
     if (roll < 28) {
       state.value = state.value.copyWith(lastSpinResult: 'Leider nichts gewonnen');
+      _persist();
       return true;
     }
     if (roll < 58) {
@@ -124,6 +169,7 @@ class GameEconomy {
         coins: state.value.coins + amount,
         lastSpinResult: '+$amount Münzen gewonnen',
       );
+      _persist();
       return true;
     }
 
@@ -135,6 +181,7 @@ class GameEconomy {
         coins: state.value.coins + 3,
         lastSpinResult: 'Alle Skins da: +3 Münzen',
       );
+      _persist();
       return true;
     }
 
@@ -144,6 +191,7 @@ class GameEconomy {
       selectedSkinId: skin.id,
       lastSpinResult: '${skin.name} freigeschaltet',
     );
+    _persist();
     return true;
   }
 }
