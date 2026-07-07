@@ -62,11 +62,39 @@ jobs:
           echo "Installed signing identities:"
           security find-identity -v -p codesigning
 
+          
+      - name: Create ExportOptions.plist
+        run: |
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>ch.gregiwaller.trollrunner</key>
+              <string>${{ secrets.PROVISIONING_PROFILE_NAME }}</string>
+            </dict>
+          </dict>
+          </plist>
+          EOF
+
+          echo "ExportOptions.plist created:"
+          ls -la ExportOptions.plist
+          cat ExportOptions.plist
+
       - name: Build signed IPA
         run: |
           flutter build ipa --release \
             --build-number=${{ github.run_number }} \
-            --export-options-plist=ios/ExportOptions.plist
+            --export-options-plist=ExportOptions.plist \
+            --no-pub
 
       - name: Find IPA
         run: |
