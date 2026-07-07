@@ -29,44 +29,66 @@ jobs:
           BUILD_PROVISION_PROFILE_BASE64: ${{ secrets.BUILD_PROVISION_PROFILE_BASE64 }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          set -euo pipefail
 
-          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode > $CERTIFICATE_PATH
-          echo -n "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > $PP_PATH
+          for secret_name in BUILD_CERTIFICATE_BASE64 P12_PASSWORD BUILD_PROVISION_PROFILE_BASE64 KEYCHAIN_PASSWORD; do
+            if [ -z "${!secret_name:-}" ]; then
+              echo "::error::Missing required GitHub secret: $secret_name"
+              exit 1
+            fi
+          done
 
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security default-keychain -s $KEYCHAIN_PATH
-          security list-keychains -d user -s $KEYCHAIN_PATH login.keychain-db
+          CERTIFICATE_PATH="$RUNNER_TEMP/build_certificate.p12"
+          PP_PATH="$RUNNER_TEMP/build_pp.mobileprovision"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
 
-          security import $CERTIFICATE_PATH \
+          echo "$BUILD_CERTIFICATE_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
+          echo "$BUILD_PROVISION_PROFILE_BASE64" | base64 --decode > "$PP_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | sed 's/[" ]//g')
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          security import "$CERTIFICATE_PATH" \
             -P "$P12_PASSWORD" \
             -A \
-            -t cert \
             -f pkcs12 \
-            -k $KEYCHAIN_PATH
+            -k "$KEYCHAIN_PATH"
 
           security set-key-partition-list \
             -S apple-tool:,apple: \
             -s \
             -k "$KEYCHAIN_PASSWORD" \
-            $KEYCHAIN_PATH
+            "$KEYCHAIN_PATH"
 
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i $PP_PATH))
-          cp $PP_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          security cms -D -i "$PP_PATH" > "$RUNNER_TEMP/profile.plist"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" "$RUNNER_TEMP/profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c "Print Name" "$RUNNER_TEMP/profile.plist")
+          cp "$PP_PATH" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> "$GITHUB_ENV"
+          echo "PROFILE_NAME=$PROFILE_NAME" >> "$GITHUB_ENV"
 
-          echo "Installed signing identities:"
-          security find-identity -v -p codesigning
+          echo "Installed signing identities in $KEYCHAIN_PATH:"
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+          if ! security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep -q 'Apple Distribution'; then
+            echo "::error::No Apple Distribution code-signing identity was found in the imported P12 certificate. Export an Apple Distribution certificate from Keychain Access and update BUILD_CERTIFICATE_BASE64/P12_PASSWORD."
+            exit 1
+          fi
 
       - name: Configure Xcode signing
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          PROVISIONING_PROFILE_NAME: ${{ secrets.PROVISIONING_PROFILE_NAME }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${APPLE_TEAM_ID:-}" ]; then
+            echo "::error::Missing required GitHub secret: APPLE_TEAM_ID"
+            exit 1
+          fi
+
           python3 <<'PY'
           from pathlib import Path
           import os
@@ -76,40 +98,43 @@ jobs:
           text = project_path.read_text()
 
           team_id = os.environ["APPLE_TEAM_ID"]
-          profile_name = os.environ["PROVISIONING_PROFILE_NAME"]
+          profile_name = os.environ["PROFILE_NAME"]
           bundle_id = "ch.gregiwaller.trollrunner"
 
+          def upsert(setting_block: str, key: str, value: str) -> str:
+              pattern = rf"(\n\s*){re.escape(key)} = [^;]+;"
+              replacement = rf"\1{key} = {value};"
+              if re.search(pattern, setting_block):
+                  return re.sub(pattern, replacement, setting_block)
+              return setting_block.replace("\n\t\t\t};", f"\n\t\t\t\t{key} = {value};\n\t\t\t}};")
+
+          def configure_runner_build_settings(match: re.Match) -> str:
+              block = match.group(0)
+              if f"PRODUCT_BUNDLE_IDENTIFIER = {bundle_id};" not in block:
+                  return block
+              settings = {
+                  "CODE_SIGN_STYLE": "Manual",
+                  "DEVELOPMENT_TEAM": team_id,
+                  "CODE_SIGN_IDENTITY": '"Apple Distribution"',
+                  '"CODE_SIGN_IDENTITY[sdk=iphoneos*]"': '"Apple Distribution"',
+                  "PROVISIONING_PROFILE_SPECIFIER": f'"{profile_name}"',
+              }
+              for key, value in settings.items():
+                  block = upsert(block, key, value)
+              return block
+
           text = re.sub(
-              r"PRODUCT_BUNDLE_IDENTIFIER = [^;]+;",
-              f"PRODUCT_BUNDLE_IDENTIFIER = {bundle_id};",
-              text
-          )
-
-          replacements = {
-              "DEVELOPMENT_TEAM": team_id,
-              "CODE_SIGN_STYLE": "Manual",
-              "CODE_SIGN_IDENTITY": '"Apple Distribution"',
-              "PROVISIONING_PROFILE_SPECIFIER": f'"{profile_name}"',
-          }
-
-          for key, value in replacements.items():
-              text = re.sub(
-                  rf"{key} = [^;]+;",
-                  f"{key} = {value};",
-                  text
-              )
-
-          text = re.sub(
-              r'"CODE_SIGN_IDENTITY\[sdk=iphoneos\*\]" = [^;]+;',
-              '"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Distribution";',
-              text
+              r"\t\t[A-F0-9]+ /\* (?:Debug|Release|Profile) \*/ = \{.*?\n\t\t\};",
+              configure_runner_build_settings,
+              text,
+              flags=re.S,
           )
 
           project_path.write_text(text)
           PY
 
           echo "Signing settings:"
-          grep -n "DEVELOPMENT_TEAM\|CODE_SIGN_STYLE\|CODE_SIGN_IDENTITY\|PROVISIONING_PROFILE_SPECIFIER\|PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj
+          grep -nE "DEVELOPMENT_TEAM|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|PROVISIONING_PROFILE_SPECIFIER|PRODUCT_BUNDLE_IDENTIFIER" ios/Runner.xcodeproj/project.pbxproj
           
       - name: Create ExportOptions.plist
         run: |
@@ -127,7 +152,7 @@ jobs:
             <key>provisioningProfiles</key>
             <dict>
               <key>ch.gregiwaller.trollrunner</key>
-              <string>${{ secrets.PROVISIONING_PROFILE_NAME }}</string>
+              <string>${{ env.PROFILE_NAME }}</string>
             </dict>
           </dict>
           </plist>
@@ -139,6 +164,7 @@ jobs:
 
       - name: Build signed IPA
         run: |
+          set -euo pipefail
           flutter build ipa --release \
             --build-number=${{ github.run_number }} \
             --export-options-plist=ExportOptions.plist \
@@ -146,8 +172,13 @@ jobs:
 
       - name: Find IPA
         run: |
+          set -euo pipefail
           IPA_PATH=$(find build/ios/ipa -name "*.ipa" | head -n 1)
-          echo "IPA_PATH=$IPA_PATH" >> $GITHUB_ENV
+          if [ -z "$IPA_PATH" ]; then
+            echo "::error::No IPA file was produced in build/ios/ipa"
+            exit 1
+          fi
+          echo "IPA_PATH=$IPA_PATH" >> "$GITHUB_ENV"
           echo "Found IPA: $IPA_PATH"
 
       - name: Upload IPA artifact
