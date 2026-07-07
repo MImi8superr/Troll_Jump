@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'game/economy.dart';
 import 'game/level_progress.dart';
 import 'screens/fake_win_screen.dart';
 import 'screens/game_screen.dart';
@@ -11,6 +12,7 @@ import 'screens/win_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LevelProgress.load();
+  await GameEconomy.load();
   runApp(const TrollRunnerApp());
 }
 
