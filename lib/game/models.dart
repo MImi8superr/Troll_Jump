@@ -150,7 +150,7 @@ class Level {
       zone.update(dt);
     }
     for (final zone in darkZones) {
-      zone.update(dt);
+      zone.update(dt, player);
     }
     goal.update(dt);
     decoyGoal?.update(dt);
@@ -482,38 +482,48 @@ class IceZone {
 
 /// While the player is inside, the world is swallowed by darkness except a
 /// light circle around the player, lantern glows at checkpoints, and glowing
-/// goals. Every [flashPeriod] seconds a lightning flash reveals everything
-/// for [flashDuration] — memorize, then move.
+/// goals. On FIRST entry the whole view stays lit for [previewDuration]
+/// seconds — one good look, then it's flashlight only. The preview re-arms
+/// when the level resets (each death grants a fresh look).
 class DarkZone {
   DarkZone({
     required this.id,
     required this.rect,
     this.lightRadius = 140,
-    this.flashPeriod = 3.2,
-    this.flashDuration = 0.16,
+    this.previewDuration = 1.4,
   });
 
   final String id;
   final Rect rect;
   final double lightRadius;
-  final double flashPeriod;
-  final double flashDuration;
-  double time = 0;
+  final double previewDuration;
 
-  bool get flashing => time % flashPeriod < flashDuration;
+  bool _entered = false;
+  double _previewRemaining = 0;
+
+  /// True during the one-time look around right after first entry.
+  bool get revealing => _entered && _previewRemaining > 0;
 
   DarkZone copy() {
     return DarkZone(
       id: id,
       rect: rect,
       lightRadius: lightRadius,
-      flashPeriod: flashPeriod,
-      flashDuration: flashDuration,
+      previewDuration: previewDuration,
     );
   }
 
-  void update(double dt) {
-    time += dt;
+  void update(double dt, Player player) {
+    if (!_entered) {
+      if (rect.overlaps(player.rect)) {
+        _entered = true;
+        _previewRemaining = previewDuration;
+      }
+      return;
+    }
+    if (_previewRemaining > 0) {
+      _previewRemaining -= dt;
+    }
   }
 }
 
