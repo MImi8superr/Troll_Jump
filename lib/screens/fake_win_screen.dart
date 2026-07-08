@@ -39,7 +39,7 @@ class _FakeWinScreenState extends State<FakeWinScreen> {
                   ),
                   const SizedBox(height: 16),
                   const Text(
-                    'You beat Troll Runner!',
+                    'You beat Troll Dash!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 34,

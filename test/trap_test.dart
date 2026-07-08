@@ -3,8 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:troll_run/game/levels.dart';
-import 'package:troll_run/game/models.dart';
+import 'package:troll_dash/game/levels.dart';
+import 'package:troll_dash/game/models.dart';
 
 void main() {
   group('FakeGoalTrap (level 17)', () {
@@ -214,7 +214,8 @@ void main() {
       expect(trap.triggered, isTrue);
       expect(spike.rect.left, startLeft);
 
-      // Green light: the player moves, the spike closes in at 90% speed.
+      // Green light: the player moves, the spike closes in at the
+      // level-tuned speed.
       player.velocity = const Offset(260, 0);
       trap.update(level, player, 0.5);
       expect(spike.rect.left, lessThan(startLeft));
