@@ -18,7 +18,7 @@ class MainMenu extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Text(
-                      'Troll Runner',
+                      'Troll Dash',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 44,
@@ -29,7 +29,7 @@ class MainMenu extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     const Text(
-                      'Tiny jumps. Mean traps. Fifteen levels.',
+                      'Tiny jumps. Mean traps. Twenty-five levels.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 16,
