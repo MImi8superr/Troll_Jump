@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:troll_dash/game/economy.dart';
 import 'package:troll_dash/game/level_progress.dart';
 import 'package:troll_dash/main.dart';
+import 'package:troll_dash/screens/shop_screen.dart';
 
 void main() {
   setUp(() {
-    // Keep the persisted-progress singleton hermetic between tests.
+    // Keep the persisted singletons hermetic between tests.
     SharedPreferences.setMockInitialValues({});
     LevelProgress.highestUnlockedLevel.value = 1;
+    GameEconomy.state.value = const EconomyState();
   });
 
   testWidgets('opens Troll Dash and starts level one', (tester) async {
@@ -62,7 +65,31 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Glücksrad'), findsOneWidget);
-    expect(find.text('Classic Blue'), findsOneWidget);
     expect(find.text('Spin kaufen (5 Münzen)'), findsOneWidget);
+
+    // The wheel makes the spin card tall; the skin list starts below the
+    // fold, so scroll it into view.
+    await tester.scrollUntilVisible(find.text('Classic Blue'), 200);
+    expect(find.text('Classic Blue'), findsOneWidget);
+  });
+
+  testWidgets('spin wheel animates before revealing the result', (
+    tester,
+  ) async {
+    GameEconomy.state.value = const EconomyState(coins: 5);
+    await tester.pumpWidget(const MaterialApp(home: ShopScreen()));
+
+    await tester.tap(find.text('Spin kaufen (5 Münzen)'));
+    await tester.pump();
+
+    // The prize is applied immediately, but the text stays hidden while
+    // the wheel is still spinning.
+    final result = GameEconomy.state.value.lastSpinResult;
+    expect(result, isNotNull);
+    expect(find.text(result!), findsNothing);
+
+    // Once the wheel has stopped, the result is revealed.
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.text(result), findsOneWidget);
   });
 }
