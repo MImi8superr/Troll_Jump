@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'game/economy.dart';
 import 'game/level_progress.dart';
@@ -11,6 +12,11 @@ import 'screens/win_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // A platformer with on-screen controls only makes sense in landscape.
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
   await LevelProgress.load();
   await GameEconomy.load();
   runApp(const TrollDashApp());

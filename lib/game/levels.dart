@@ -780,7 +780,9 @@ List<Level> buildLevels() {
           spikeId: 'chaser-24',
           triggerX: 1005,
           minX: 640,
-          maxX: 1290,
+          // Stops well short of the checkpoint at 1160 and the jump pad:
+          // respawning there must never be an instant death.
+          maxX: 1080,
           speed: 185,
         ),
         FakeCheckpointTrap(
@@ -843,6 +845,9 @@ List<Level> buildLevels() {
           triggerX: 570,
           minX: 590,
           maxX: 1000,
+          // Harder than level 22's 0.55, but beatable — the default 0.9
+          // closed faster than the hop window under the lids allowed.
+          speedFactor: 0.7,
         ),
         EvilTwinTrap(mirrorX: 1300, range: 300),
         FleeingGoalTrap(cliffX: 2900, retreatDistance: 80),
