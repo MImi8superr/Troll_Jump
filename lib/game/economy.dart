@@ -17,6 +17,10 @@ class PlayerSkin {
   final int price;
 }
 
+/// The kinds of prizes the wheel can land on. The shop's spin wheel maps
+/// each outcome to one of its segments for the landing animation.
+enum SpinPrize { nothing, coins2, coins7, skin }
+
 class EconomyState {
   const EconomyState({
     this.coins = 0,
@@ -145,10 +149,13 @@ class GameEconomy {
     _persist();
   }
 
-  static bool spinWheel() {
+  /// Charges the spin cost, applies a random prize, and returns which prize
+  /// category the wheel should land on — or null if the player can't afford
+  /// a spin. The result text lands in [EconomyState.lastSpinResult].
+  static SpinPrize? spinWheel() {
     final current = state.value;
     if (current.coins < spinCost) {
-      return false;
+      return null;
     }
 
     final afterCost = current.copyWith(
@@ -161,7 +168,7 @@ class GameEconomy {
     if (roll < 28) {
       state.value = state.value.copyWith(lastSpinResult: 'Leider nichts gewonnen');
       _persist();
-      return true;
+      return SpinPrize.nothing;
     }
     if (roll < 58) {
       final amount = roll < 45 ? 2 : 7;
@@ -170,7 +177,7 @@ class GameEconomy {
         lastSpinResult: '+$amount Münzen gewonnen',
       );
       _persist();
-      return true;
+      return roll < 45 ? SpinPrize.coins2 : SpinPrize.coins7;
     }
 
     final lockedSkins = skins
@@ -182,7 +189,7 @@ class GameEconomy {
         lastSpinResult: 'Alle Skins da: +3 Münzen',
       );
       _persist();
-      return true;
+      return SpinPrize.skin;
     }
 
     final skin = lockedSkins[_random.nextInt(lockedSkins.length)];
@@ -192,6 +199,6 @@ class GameEconomy {
       lastSpinResult: '${skin.name} freigeschaltet',
     );
     _persist();
-    return true;
+    return SpinPrize.skin;
   }
 }
