@@ -100,6 +100,9 @@ class _SpinCard extends StatefulWidget {
 
 class _SpinCardState extends State<_SpinCard>
     with SingleTickerProviderStateMixin {
+  static const double _wheelDiameter = 150;
+  static const double _wheelAreaHeight = 166;
+
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 3400),
@@ -181,9 +184,9 @@ class _SpinCardState extends State<_SpinCard>
               'Ein Spin kostet 5 Münzen. Gewinne Skins, mehr Münzen oder auch nichts.',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             SizedBox(
-              height: 232,
+              height: _wheelAreaHeight,
               child: Stack(
                 alignment: Alignment.topCenter,
                 children: [
@@ -195,7 +198,8 @@ class _SpinCardState extends State<_SpinCard>
                         return Transform.rotate(
                           angle: _animation?.value ?? _rotation,
                           child: CustomPaint(
-                            size: const Size(210, 210),
+                            key: const Key('spin-wheel'),
+                            size: const Size.square(_wheelDiameter),
                             painter: _WheelPainter(),
                           ),
                         );
@@ -204,14 +208,14 @@ class _SpinCardState extends State<_SpinCard>
                   ),
                   const Icon(
                     Icons.arrow_drop_down_rounded,
-                    size: 54,
+                    size: 42,
                     color: Color(0xFFDC2626),
                   ),
                 ],
               ),
             ),
             if (!_spinning && result != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 result,
                 textAlign: TextAlign.center,
@@ -222,7 +226,7 @@ class _SpinCardState extends State<_SpinCard>
                 ),
               ),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             FilledButton.icon(
               onPressed: canSpin && !_spinning ? _spin : null,
               icon: const Icon(Icons.casino_rounded),
