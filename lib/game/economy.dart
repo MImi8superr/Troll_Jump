@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -54,6 +55,8 @@ class GameEconomy {
 
   static const int spinCost = 5;
 
+  static const int _storageVersion = 1;
+  static const String _stateKey = 'economy_state';
   static const String _coinsKey = 'economy_coins';
   static const String _ownedKey = 'economy_owned_skins';
   static const String _selectedKey = 'economy_selected_skin';
@@ -70,6 +73,7 @@ class GameEconomy {
       ValueNotifier<EconomyState>(const EconomyState());
 
   static final math.Random _random = math.Random();
+  static Future<void> _writeQueue = Future<void>.value();
 
   static PlayerSkin get selectedSkin {
     return skins.firstWhere(
@@ -83,7 +87,17 @@ class GameEconomy {
   /// leave the fresh default state untouched.
   static Future<void> load() async {
     try {
+      await _writeQueue;
       final prefs = await SharedPreferences.getInstance();
+      final encodedState = prefs.getString(_stateKey);
+      if (encodedState != null) {
+        final restored = _decodeState(encodedState);
+        if (restored != null) {
+          state.value = restored;
+          return;
+        }
+      }
+
       final coins = prefs.getInt(_coinsKey);
       final owned = prefs.getStringList(_ownedKey);
       final selected = prefs.getString(_selectedKey);
@@ -91,38 +105,91 @@ class GameEconomy {
         return;
       }
       final ownedSet = {...?owned, 'blue'};
-      state.value = EconomyState(
+      final migrated = EconomyState(
         coins: math.max(0, coins ?? 0),
         ownedSkinIds: ownedSet,
         selectedSkinId:
             selected != null && ownedSet.contains(selected) ? selected : 'blue',
       );
+      state.value = migrated;
+
+      // Commit the complete replacement before removing any legacy value. If
+      // the app stops during migration, the next launch can safely retry it.
+      if (await _persist(migrated)) {
+        await prefs.remove(_coinsKey);
+        await prefs.remove(_ownedKey);
+        await prefs.remove(_selectedKey);
+      }
     } catch (_) {
       // Keep the default state if storage is unavailable.
     }
   }
 
-  static Future<void> _persist() async {
+  static EconomyState? _decodeState(String encoded) {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final current = state.value;
-      await prefs.setInt(_coinsKey, current.coins);
-      await prefs.setStringList(_ownedKey, current.ownedSkinIds.toList());
-      await prefs.setString(_selectedKey, current.selectedSkinId);
+      final decoded = jsonDecode(encoded);
+      if (decoded is! Map<String, dynamic> ||
+          decoded['version'] != _storageVersion ||
+          decoded['coins'] is! int ||
+          decoded['ownedSkinIds'] is! List ||
+          decoded['selectedSkinId'] is! String) {
+        return null;
+      }
+
+      final owned = <String>{'blue'};
+      for (final id in decoded['ownedSkinIds'] as List<dynamic>) {
+        if (id is String) {
+          owned.add(id);
+        }
+      }
+      final selected = decoded['selectedSkinId'] as String;
+      return EconomyState(
+        coins: math.max(0, decoded['coins'] as int),
+        ownedSkinIds: owned,
+        selectedSkinId: owned.contains(selected) ? selected : 'blue',
+      );
     } catch (_) {
-      // Non-fatal: the wallet simply won't survive this session.
+      return null;
     }
   }
 
-  static void addCoins(int amount) {
-    state.value = state.value.copyWith(
+  static String _encodeState(EconomyState value) {
+    final owned = value.ownedSkinIds.toList()..sort();
+    return jsonEncode({
+      'version': _storageVersion,
+      'coins': value.coins,
+      'ownedSkinIds': owned,
+      'selectedSkinId': value.selectedSkinId,
+    });
+  }
+
+  /// Serializes writes so an older snapshot can never finish after a newer
+  /// one. Each mutation replaces one complete, versioned record.
+  static Future<bool> _persist(EconomyState snapshot) {
+    final encoded = _encodeState(snapshot);
+    final write = _writeQueue.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        return await prefs.setString(_stateKey, encoded);
+      } catch (_) {
+        // Non-fatal: the current in-memory session can continue.
+        return false;
+      }
+    });
+    _writeQueue = write.then<void>((_) {});
+    return write;
+  }
+
+  static Future<void> addCoins(int amount) async {
+    final updated = state.value.copyWith(
       coins: state.value.coins + amount,
       lastSpinResult: state.value.lastSpinResult,
     );
-    _persist();
+    state.value = updated;
+    await _persist(updated);
   }
 
-  static bool buySkin(PlayerSkin skin) {
+  static Future<bool> buySkin(PlayerSkin skin) async {
     final current = state.value;
     if (current.ownedSkinIds.contains(skin.id) || current.coins < skin.price) {
       return false;
@@ -134,11 +201,11 @@ class GameEconomy {
       selectedSkinId: skin.id,
       lastSpinResult: current.lastSpinResult,
     );
-    _persist();
+    await _persist(state.value);
     return true;
   }
 
-  static void selectSkin(PlayerSkin skin) {
+  static Future<void> selectSkin(PlayerSkin skin) async {
     if (!state.value.ownedSkinIds.contains(skin.id)) {
       return;
     }
@@ -146,13 +213,13 @@ class GameEconomy {
       selectedSkinId: skin.id,
       lastSpinResult: state.value.lastSpinResult,
     );
-    _persist();
+    await _persist(state.value);
   }
 
   /// Charges the spin cost, applies a random prize, and returns which prize
   /// category the wheel should land on — or null if the player can't afford
   /// a spin. The result text lands in [EconomyState.lastSpinResult].
-  static SpinPrize? spinWheel() {
+  static Future<SpinPrize?> spinWheel() async {
     final current = state.value;
     if (current.coins < spinCost) {
       return null;
@@ -167,7 +234,7 @@ class GameEconomy {
     final roll = _random.nextInt(100);
     if (roll < 28) {
       state.value = state.value.copyWith(lastSpinResult: 'Leider nichts gewonnen');
-      _persist();
+      await _persist(state.value);
       return SpinPrize.nothing;
     }
     if (roll < 58) {
@@ -176,7 +243,7 @@ class GameEconomy {
         coins: state.value.coins + amount,
         lastSpinResult: '+$amount Münzen gewonnen',
       );
-      _persist();
+      await _persist(state.value);
       return roll < 45 ? SpinPrize.coins2 : SpinPrize.coins7;
     }
 
@@ -188,7 +255,7 @@ class GameEconomy {
         coins: state.value.coins + 3,
         lastSpinResult: 'Alle Skins da: +3 Münzen',
       );
-      _persist();
+      await _persist(state.value);
       return SpinPrize.skin;
     }
 
@@ -198,7 +265,7 @@ class GameEconomy {
       selectedSkinId: skin.id,
       lastSpinResult: '${skin.name} freigeschaltet',
     );
-    _persist();
+    await _persist(state.value);
     return SpinPrize.skin;
   }
 }

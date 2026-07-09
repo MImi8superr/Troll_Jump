@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -429,7 +430,7 @@ class _GameScreenState extends State<GameScreen>
       if (coin.id == 'rare-coin') {
         _rareCoinRect = null; // Banked: don't respawn it after a death.
       }
-      GameEconomy.addCoins(coin.value);
+      unawaited(GameEconomy.addCoins(coin.value));
       Sfx.checkpoint();
     }
   }
