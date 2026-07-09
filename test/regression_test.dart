@@ -50,7 +50,7 @@ void main() {
         number: 1,
         title: 'Overlapping hazard and goal',
         width: 400,
-        playerStart: const Offset(64, floorY - playerSize.height),
+        playerStart: Offset(64, floorY - playerSize.height),
         platforms: [
           Platform(id: 'floor', rect: const Rect.fromLTWH(0, floorY, 400, 80)),
         ],
@@ -66,7 +66,7 @@ void main() {
         number: 2,
         title: 'Must stay locked this frame',
         width: 400,
-        playerStart: const Offset(64, floorY - playerSize.height),
+        playerStart: Offset(64, floorY - playerSize.height),
         platforms: const [],
         spikes: const [],
         goal: Goal(rect: const Rect.fromLTWH(320, floorY - 86, 54, 86)),
