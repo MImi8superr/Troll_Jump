@@ -31,7 +31,7 @@ class MainMenu extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       const Text(
-                        'Tiny jumps. Mean traps. Twenty-five levels.',
+                        'Tiny jumps. Mean traps. Twenty-seven levels.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
