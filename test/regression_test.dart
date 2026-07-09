@@ -130,7 +130,7 @@ void main() {
       number: 27,
       title: 'Second lap lifecycle',
       width: 650,
-      playerStart: const Offset(64, floorY - playerSize.height),
+      playerStart: Offset(64, floorY - playerSize.height),
       platforms: [
         Platform(
           id: 'floor',
@@ -154,7 +154,7 @@ void main() {
       ),
       traps: [
         SecondLapTrap(
-          returnPosition: const Offset(64, floorY - playerSize.height),
+          returnPosition: Offset(64, floorY - playerSize.height),
           armSpikeIds: const ['lap-two-spike'],
         ),
       ],
