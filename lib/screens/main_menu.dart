@@ -12,58 +12,82 @@ class MainMenu extends StatelessWidget {
           children: [
             const _MenuBackdrop(),
             Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text(
-                      'Troll Dash',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 44,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF101827),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'Tiny jumps. Mean traps. Twenty-five levels.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF334155),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                    FilledButton.icon(
-                      onPressed: () => Navigator.of(context).pushNamed('/levels'),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('Level auswählen'),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(220, 56),
-                        textStyle: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
+              child: Transform.translate(
+                offset: const Offset(0, -36),
+                child: Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Troll Dash',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 44,
+                          height: 1,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF101827),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.of(context).pushNamed('/shop'),
-                      icon: const Icon(Icons.storefront_rounded),
-                      label: const Text('Skin-Shop'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(220, 52),
-                        textStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                      const SizedBox(height: 14),
+                      const Text(
+                        'Tiny jumps. Mean traps. Twenty-five levels.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF334155),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 30),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 460),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: FilledButton.icon(
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/levels'),
+                                icon: const Icon(Icons.play_arrow_rounded),
+                                label: const Text('Level auswählen'),
+                                style: FilledButton.styleFrom(
+                                  minimumSize: const Size(0, 56),
+                                  textStyle: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () => Navigator.of(
+                                  context,
+                                ).pushNamed('/shop'),
+                                icon: const Icon(Icons.storefront_rounded),
+                                label: const Text('Skin-Shop'),
+                                style: OutlinedButton.styleFrom(
+                                  minimumSize: const Size(0, 56),
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: const Color(0xFF1E3A5F),
+                                  side: const BorderSide(
+                                    color: Color(0xFF475569),
+                                    width: 1.5,
+                                  ),
+                                  textStyle: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
