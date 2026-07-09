@@ -74,6 +74,7 @@ class _GameScreenState extends State<GameScreen>
   double _deathElapsed = 0;
   Offset? _checkpointSpawn;
   String? _checkpointId;
+  bool _secondLapActive = false;
   Duration? _lastTick;
   bool _hasLoadedLevel = false;
 
@@ -103,6 +104,7 @@ class _GameScreenState extends State<GameScreen>
 
   void _loadLevel(int index, {bool keepCheckpoint = false}) {
     final restoreCheckpoint = keepCheckpoint && index == _levelIndex;
+    final restoreSecondLap = restoreCheckpoint && _secondLapActive;
     final freshEntry = !_hasLoadedLevel || index != _levelIndex;
     if (index != _levelIndex) {
       _deathsThisLevel = 0;
@@ -110,6 +112,7 @@ class _GameScreenState extends State<GameScreen>
     if (!restoreCheckpoint) {
       _checkpointSpawn = null;
       _checkpointId = null;
+      _secondLapActive = false;
     }
 
     _levelIndex = index;
@@ -127,7 +130,24 @@ class _GameScreenState extends State<GameScreen>
       _level.coins.add(Coin(id: 'rare-coin', rect: _rareCoinRect!));
     }
     _player = Player(start: _level.playerStart);
-    if (restoreCheckpoint && _checkpointSpawn != null) {
+    var secondLapRestored = false;
+    if (restoreSecondLap) {
+      for (final trap in _level.traps.whereType<SecondLapTrap>()) {
+        trap.restoreSecondLap(_level);
+        _player.position = trap.returnPosition;
+        _player.velocity = Offset.zero;
+        _player.onGround = false;
+        _player.groundPlatformId = null;
+        _checkpointSpawn = null;
+        _checkpointId = null;
+        secondLapRestored = true;
+        break;
+      }
+      if (!secondLapRestored) {
+        _secondLapActive = false;
+      }
+    }
+    if (!secondLapRestored && restoreCheckpoint && _checkpointSpawn != null) {
       _player.position = _checkpointSpawn!;
       for (final checkpoint in _level.checkpoints) {
         if (checkpoint.id == _checkpointId) {
@@ -142,7 +162,9 @@ class _GameScreenState extends State<GameScreen>
     _coyoteTimer = 0;
     _jumpCuttable = false;
     _deathTimer = 0;
-    _triggeredTrapCount = 0;
+    _triggeredTrapCount = _level.traps
+        .where((trap) => trap.triggered)
+        .length;
     _particles.clear();
   }
 
@@ -185,6 +207,16 @@ class _GameScreenState extends State<GameScreen>
 
     for (final trap in _level.traps) {
       trap.update(_level, _player, dt);
+    }
+    if (!_secondLapActive &&
+        _level.traps.whereType<SecondLapTrap>().any(
+          (trap) => trap.triggered,
+        )) {
+      _secondLapActive = true;
+      // The second lap always restarts at its explicit return position. An
+      // earlier first-lap checkpoint must not override that after a death.
+      _checkpointSpawn = null;
+      _checkpointId = null;
     }
     _level.updateObjects(dt, _player);
 
@@ -395,7 +427,8 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _updateCheckpointsAndZones() {
-    final checkpointsLocked = _checkpointRecaptureLockedForReturnTrip;
+    final checkpointsLocked =
+        _checkpointRecaptureLockedForReturnTrip || _secondLapActive;
     for (final checkpoint in _level.checkpoints) {
       // Fake checkpoints never grant a spawn — their trap handles them.
       if (checkpoint.fake || !checkpoint.visible) {
