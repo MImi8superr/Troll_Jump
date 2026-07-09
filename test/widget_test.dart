@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:troll_run/game/level_progress.dart';
-import 'package:troll_run/main.dart';
+import 'package:troll_dash/game/level_progress.dart';
+import 'package:troll_dash/main.dart';
 
 void main() {
   setUp(() {
@@ -12,10 +12,10 @@ void main() {
     LevelProgress.highestUnlockedLevel.value = 1;
   });
 
-  testWidgets('opens Troll Runner and starts level one', (tester) async {
-    await tester.pumpWidget(const TrollRunnerApp());
+  testWidgets('opens Troll Dash and starts level one', (tester) async {
+    await tester.pumpWidget(const TrollDashApp());
 
-    expect(find.text('Troll Runner'), findsOneWidget);
+    expect(find.text('Troll Dash'), findsOneWidget);
     expect(find.text('Level auswählen'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Level auswählen'));
@@ -35,8 +35,28 @@ void main() {
     expect(find.bySemanticsLabel('Jump'), findsOneWidget);
   });
 
+  testWidgets(
+    'home button returns from a level to the main menu',
+    (tester) async {
+      await tester.pumpWidget(const TrollDashApp());
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Level auswählen'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Level 1'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
+      await tester.tap(find.byTooltip('Menu'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Troll Dash'), findsOneWidget);
+      expect(find.text('Level auswählen'), findsOneWidget);
+      expect(find.text('Level-Auswahl'), findsNothing);
+    },
+  );
+
   testWidgets('opens skin shop from main menu', (tester) async {
-    await tester.pumpWidget(const TrollRunnerApp());
+    await tester.pumpWidget(const TrollDashApp());
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Skin-Shop'));
     await tester.pumpAndSettle();

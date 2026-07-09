@@ -3,10 +3,10 @@ import 'dart:ui' show PictureRecorder;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:troll_run/game/game_painter.dart';
-import 'package:troll_run/game/levels.dart';
-import 'package:troll_run/game/models.dart';
-import 'package:troll_run/screens/level_select_screen.dart';
+import 'package:troll_dash/game/game_painter.dart';
+import 'package:troll_dash/game/levels.dart';
+import 'package:troll_dash/game/models.dart';
+import 'package:troll_dash/screens/level_select_screen.dart';
 
 void main() {
   test('GamePainter does not hang when the canvas has zero height', () {

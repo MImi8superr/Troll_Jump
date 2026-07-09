@@ -375,15 +375,19 @@ class _GameScreenState extends State<GameScreen>
   }
 
   void _updateCheckpointsAndZones() {
+    final checkpointsLocked = _checkpointRecaptureLockedForReturnTrip;
     for (final checkpoint in _level.checkpoints) {
       // Fake checkpoints never grant a spawn — their trap handles them.
       if (checkpoint.fake || !checkpoint.visible) {
         continue;
       }
-      // Checkpoints re-arm in both directions: touching any flag (even one
-      // already reached) makes it the current spawn. Essential for levels
-      // with a return trip, where progress runs right-to-left.
-      if (_checkpointId != checkpoint.id &&
+      // Checkpoints normally re-arm in both directions: touching any flag
+      // (even one already reached) makes it the current spawn. Level 21 is
+      // the exception after the fake goal reveals the real goal back at the
+      // start: keep the farthest checkpoint so one death does not force the
+      // whole outward trip again.
+      if (!checkpointsLocked &&
+          _checkpointId != checkpoint.id &&
           _player.rect.overlaps(checkpoint.rect.inflate(4))) {
         checkpoint.reached = true;
         checkpoint.flash = 0.6;
@@ -400,6 +404,9 @@ class _GameScreenState extends State<GameScreen>
       }
     }
   }
+
+  bool get _checkpointRecaptureLockedForReturnTrip =>
+      _level.number == 21 && _level.goal.visible;
 
   void _collectCoins() {
     for (final coin in _level.coins) {
@@ -589,7 +596,7 @@ class _GameScreenState extends State<GameScreen>
                 onMenu: () {
                   Navigator.of(
                     context,
-                  ).pushNamedAndRemoveUntil('/levels', (_) => false);
+                  ).pushNamedAndRemoveUntil('/', (_) => false);
                 },
               ),
               Expanded(
