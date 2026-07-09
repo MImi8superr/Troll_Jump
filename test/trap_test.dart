@@ -88,9 +88,23 @@ void main() {
       expect(spawn.dx, 600 + (34 - playerSize.width) / 2);
     });
 
-    test('levels 13-15 and 17-25 have a checkpoint', () {
+    test('levels 13-15 and 17-26 have a checkpoint', () {
       final levels = buildLevels();
-      for (final number in [13, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25]) {
+      for (final number in [
+        13,
+        14,
+        15,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+      ]) {
         final level = levels.firstWhere((level) => level.number == number);
         expect(level.checkpoints, isNotEmpty, reason: 'level $number');
       }
@@ -295,7 +309,7 @@ void main() {
     });
   });
 
-  group('finale compositions (levels 24-25)', () {
+  group('late-game compositions (levels 24-25)', () {
     test('level 24 hides its fake lantern inside the darkness', () {
       final level = buildLevels().firstWhere((level) => level.number == 24);
       final zone = level.darkZones.single;
@@ -332,10 +346,131 @@ void main() {
     });
   });
 
+  group('Panic Button (level 26)', () {
+    test('one jump starts three counter-moving platforms', () {
+      final level =
+          buildLevels().firstWhere((level) => level.number == 26).copy();
+      final movers = level.traps
+          .whereType<ActivateMovingPlatformTrap>()
+          .toList();
+
+      expect(movers, hasLength(3));
+      expect(movers.map((trap) => trap.platformId).toSet(), hasLength(3));
+      expect(movers.any((trap) => trap.speed > 0), isTrue);
+      expect(movers.any((trap) => trap.speed < 0), isTrue);
+
+      final player = Player(start: level.playerStart);
+      for (final trap in movers) {
+        trap.onPlayerJump(level, player);
+        final platform = level.platformById(trap.platformId)!;
+        expect(platform.active, isTrue, reason: trap.platformId);
+        expect(platform.velocity.dx, trap.speed, reason: trap.platformId);
+      }
+    });
+
+    test('the ice runway drops onto a pad under a spike lid', () {
+      final level = buildLevels().firstWhere((level) => level.number == 26);
+      final ice = level.iceZones.single.rect;
+      final pad = level.jumpPads.single;
+
+      expect(ice.right, pad.rect.left);
+      expect(pad.rect.top, greaterThan(floorY));
+      expect(pad.gentleVelocity.abs(), lessThan(pad.wildVelocity.abs()));
+      expect(
+        level.spikes.any(
+          (spike) =>
+              spike.direction == SpikeDirection.down &&
+              spike.rect.right > pad.rect.left &&
+              spike.rect.left < pad.rect.right,
+        ),
+        isTrue,
+        reason: 'the wild launch needs a visible overhead consequence',
+      );
+      expect(level.decoyGoal, isNull, reason: 'the final flag is honest');
+      expect(level.goal.visible, isTrue);
+    });
+  });
+
+  group('SecondLapTrap (level 27)', () {
+    Level level27() =>
+        buildLevels().firstWhere((level) => level.number == 27).copy();
+
+    void expectSecondLapLayout(Level level, SecondLapTrap trap) {
+      expect(trap.triggered, isTrue);
+      expect(level.decoyGoal!.visible, isFalse);
+      expect(level.goal.visible, isTrue);
+
+      for (final id in trap.hidePlatformIds) {
+        final platform = level.platformById(id)!;
+        expect(platform.visible, isFalse, reason: id);
+        expect(platform.solid, isFalse, reason: id);
+        expect(platform.active, isFalse, reason: id);
+      }
+      for (final id in trap.showPlatformIds) {
+        final platform = level.platformById(id)!;
+        expect(platform.visible, isTrue, reason: id);
+        expect(platform.solid, isTrue, reason: id);
+      }
+      for (final id in trap.armSpikeIds) {
+        final spike = level.spikeById(id)!;
+        expect(spike.visible, isTrue, reason: id);
+        expect(spike.dangerous, isTrue, reason: id);
+      }
+      for (final id in trap.disarmSpikeIds) {
+        final spike = level.spikeById(id)!;
+        expect(spike.dangerous, isFalse, reason: id);
+        expect(spike.velocity, Offset.zero, reason: id);
+        expect(spike.targetLeft, isNull, reason: id);
+        expect(spike.targetTop, isNull, reason: id);
+        expect(spike.targetBottom, isNull, reason: id);
+      }
+    }
+
+    test('touching the decoy swaps the world and returns the player', () {
+      final level = level27();
+      final trap = level.traps.whereType<SecondLapTrap>().single;
+      final decoy = level.decoyGoal!;
+      final player = Player(
+        start: Offset(decoy.rect.left, floorY - playerSize.height),
+      )
+        ..velocity = const Offset(180, -120)
+        ..onGround = true
+        ..groundPlatformId = 'g-27-finish';
+
+      expect(trap.hidePlatformIds, isNotEmpty);
+      expect(trap.showPlatformIds, isNotEmpty);
+      expect(trap.armSpikeIds, isNotEmpty);
+      expect(trap.disarmSpikeIds, isNotEmpty);
+
+      trap.update(level, player, 1 / 60);
+
+      expectSecondLapLayout(level, trap);
+      expect(player.position, trap.returnPosition);
+      expect(player.velocity, Offset.zero);
+      expect(player.onGround, isFalse);
+      expect(player.groundPlatformId, isNull);
+    });
+
+    test('restoreSecondLap reapplies the persistent second-lap phase', () {
+      final level = level27();
+      final trap = level.traps.whereType<SecondLapTrap>().single;
+
+      trap.restoreSecondLap(level);
+
+      expectSecondLapLayout(level, trap);
+      expect(level.goal.flash, 0);
+      for (final id in [...trap.showPlatformIds, ...trap.armSpikeIds]) {
+        final flash =
+            level.platformById(id)?.flash ?? level.spikeById(id)!.flash;
+        expect(flash, 0, reason: id);
+      }
+    });
+  });
+
   group('level data sanity', () {
     test('all levels are internally consistent', () {
       final levels = buildLevels();
-      expect(levels.length, 25);
+      expect(levels.length, 27);
 
       for (final level in levels) {
         // The goal must sit inside the level bounds.

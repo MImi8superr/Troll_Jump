@@ -1053,6 +1053,117 @@ class FakeGoalTrap extends Trap {
   }
 }
 
+/// Touching the decoy starts a second lap through a reconfigured level.
+///
+/// The first-lap route is hidden, the alternate route is revealed, selected
+/// spikes are armed or disarmed, and the real goal replaces the decoy. The
+/// player is returned to [returnPosition] with no carried momentum. A death
+/// creates a fresh [Level], so [restoreSecondLap] reapplies the same object
+/// state without needing to touch the decoy again.
+class SecondLapTrap extends Trap {
+  SecondLapTrap({
+    required this.returnPosition,
+    this.hidePlatformIds = const [],
+    this.showPlatformIds = const [],
+    this.armSpikeIds = const [],
+    this.disarmSpikeIds = const [],
+  }) : super(TrapTriggerType.playerProximity);
+
+  final Offset returnPosition;
+  final List<String> hidePlatformIds;
+  final List<String> showPlatformIds;
+  final List<String> armSpikeIds;
+  final List<String> disarmSpikeIds;
+
+  @override
+  void update(Level level, Player player, double dt) {
+    final decoy = level.decoyGoal;
+    if (triggered || decoy == null || !decoy.visible) {
+      return;
+    }
+
+    final touched = player.rect.overlaps(decoy.rect.inflate(4));
+    final passed = player.rect.left > decoy.rect.right + 24;
+    if (!touched && !passed) {
+      return;
+    }
+
+    _applySecondLap(level, flash: true);
+    player.position = returnPosition;
+    player.velocity = Offset.zero;
+    player.onGround = false;
+    player.groundPlatformId = null;
+  }
+
+  /// Restores the persistent second-lap layout after the level was copied
+  /// afresh following a death. The caller is responsible for spawning the
+  /// player at [returnPosition].
+  void restoreSecondLap(Level level) {
+    _applySecondLap(level, flash: false);
+  }
+
+  void _applySecondLap(Level level, {required bool flash}) {
+    triggered = true;
+    final decoy = level.decoyGoal;
+    if (decoy != null) {
+      decoy.visible = false;
+    }
+    level.goal.visible = true;
+    level.goal.flash = flash ? 0.7 : 0;
+
+    for (final id in hidePlatformIds) {
+      final platform = level.platformById(id);
+      if (platform == null) {
+        continue;
+      }
+      platform.visible = false;
+      platform.solid = false;
+      platform.active = false;
+    }
+    for (final id in showPlatformIds) {
+      final platform = level.platformById(id);
+      if (platform == null) {
+        continue;
+      }
+      platform.visible = true;
+      platform.solid = true;
+      platform.flash = flash ? 0.7 : 0;
+    }
+    for (final id in armSpikeIds) {
+      final spike = level.spikeById(id);
+      if (spike == null) {
+        continue;
+      }
+      spike.visible = true;
+      spike.dangerous = true;
+      spike.flash = flash ? 0.7 : 0;
+    }
+    for (final id in disarmSpikeIds) {
+      final spike = level.spikeById(id);
+      if (spike == null) {
+        continue;
+      }
+      spike.dangerous = false;
+      spike.velocity = Offset.zero;
+      spike.targetLeft = null;
+      spike.targetTop = null;
+      spike.targetBottom = null;
+      spike.flash = flash ? 0.7 : 0;
+    }
+  }
+
+  @override
+  Trap copy() {
+    return SecondLapTrap(
+      returnPosition: returnPosition,
+      hidePlatformIds: List.of(hidePlatformIds),
+      showPlatformIds: List.of(showPlatformIds),
+      armSpikeIds: List.of(armSpikeIds),
+      disarmSpikeIds: List.of(disarmSpikeIds),
+    );
+  }
+}
+
 /// A spike that, once woken, slides horizontally toward the player forever,
 /// clamped to [minX, maxX]. It moves slightly slower than the player runs,
 /// so it can be outrun or jumped over — but never ignored.

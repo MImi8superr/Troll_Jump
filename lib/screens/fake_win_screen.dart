@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../game/game_stats.dart';
 
 /// Looks exactly like the real win screen — until the player presses any
-/// button, at which point the trolls admit there are two more levels.
+/// button, at which point the trolls admit there are twelve more levels.
 class FakeWinScreen extends StatefulWidget {
   const FakeWinScreen({super.key});
 
@@ -112,7 +112,7 @@ class _FakeWinScreenState extends State<FakeWinScreen> {
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  'The trolls built ten more levels while you were celebrating.',
+                  'The trolls built twelve more levels while you were celebrating.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
