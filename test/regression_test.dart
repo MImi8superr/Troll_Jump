@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' show PictureRecorder;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:troll_dash/game/economy.dart';
@@ -118,6 +119,116 @@ void main() {
       painter.level.coins.where((coin) => coin.id == 'rare-coin'),
       isEmpty,
     );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('second lap survives death and manual restart clears it', (
+    tester,
+  ) async {
+    final level = Level(
+      number: 27,
+      title: 'Second lap lifecycle',
+      width: 650,
+      playerStart: const Offset(64, floorY - playerSize.height),
+      platforms: [
+        Platform(
+          id: 'floor',
+          rect: const Rect.fromLTWH(0, floorY, 650, 80),
+        ),
+      ],
+      spikes: [
+        Spike(
+          id: 'lap-two-spike',
+          rect: const Rect.fromLTWH(200, floorY - 36, 40, 36),
+          visible: false,
+          dangerous: false,
+        ),
+      ],
+      decoyGoal: Goal(
+        rect: const Rect.fromLTWH(500, floorY - 86, 54, 86),
+      ),
+      goal: Goal(
+        rect: const Rect.fromLTWH(500, floorY - 86, 54, 86),
+        visible: false,
+      ),
+      traps: [
+        SecondLapTrap(
+          returnPosition: const Offset(64, floorY - playerSize.height),
+          armSpikeIds: const ['lap-two-spike'],
+        ),
+      ],
+    );
+    GameEconomy.state.value = const EconomyState(
+      claimedRareCoinLevels: {27},
+    );
+    addTearDown(() {
+      GameEconomy.state.value = const EconomyState();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(home: GameScreen(levelsOverride: [level])),
+    );
+    await tester.pump();
+
+    GamePainter currentPainter() {
+      final canvas = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .firstWhere((paint) => paint.painter is GamePainter);
+      return canvas.painter! as GamePainter;
+    }
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+    var phaseActivated = false;
+    for (var frame = 0; frame < 150; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      final trap = currentPainter()
+          .level
+          .traps
+          .whereType<SecondLapTrap>()
+          .single;
+      if (trap.triggered) {
+        phaseActivated = true;
+        break;
+      }
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+    expect(phaseActivated, isTrue);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowRight);
+    var died = false;
+    for (var frame = 0; frame < 80; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+      if (currentPainter().hidePlayer) {
+        died = true;
+        break;
+      }
+    }
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowRight);
+    expect(died, isTrue);
+
+    var restored = false;
+    for (var frame = 0; frame < 30; frame++) {
+      await tester.pump(const Duration(milliseconds: 33));
+      final painter = currentPainter();
+      final trap = painter.level.traps.whereType<SecondLapTrap>().single;
+      if (!painter.hidePlayer && trap.triggered) {
+        restored = true;
+        expect(painter.level.spikeById('lap-two-spike')!.dangerous, isTrue);
+        break;
+      }
+    }
+    expect(restored, isTrue);
+
+    await tester.tap(find.byTooltip('Restart'));
+    await tester.pump();
+    final restarted = currentPainter();
+    expect(
+      restarted.level.traps.whereType<SecondLapTrap>().single.triggered,
+      isFalse,
+    );
+    expect(restarted.level.decoyGoal!.visible, isTrue);
+    expect(restarted.level.goal.visible, isFalse);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });

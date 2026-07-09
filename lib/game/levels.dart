@@ -791,9 +791,9 @@ List<Level> buildLevels() {
         ),
       ],
     ),
-    // The final exam: four chambers of callbacks — the classics, the
-    // mirrors, the stacked trifecta of zones, and a goal that takes one
-    // last dive. The real flag waits quietly behind you. No more tricks.
+    // A four-chamber exam of callbacks — the classics, the mirrors, the
+    // stacked trifecta of zones, and a goal that takes one last dive. The
+    // real flag waits quietly behind you.
     Level(
       number: 25,
       title: 'The Last Laugh',
@@ -851,6 +851,204 @@ List<Level> buildLevels() {
         ),
         EvilTwinTrap(mirrorX: 1300, range: 300),
         FleeingGoalTrap(cliffX: 2900, retreatDistance: 80),
+      ],
+    ),
+    // The first real jump is the panic button: it starts all three narrow
+    // bridge platforms at once. Restraint matters again in the ice basin,
+    // where a fast launch hits the roof and a gentle launch finds the exit.
+    Level(
+      number: 26,
+      title: 'Panic Button',
+      width: 2880,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-26-start', 0, 620),
+        // Low enough to punish a reflex jump without making the fake-spike
+        // lesson lethal. The first bridge is already visible past its edge.
+        _platform('roof-26', 150, 330, 360, height: 48),
+        // Deliberately narrower than the rare-coin eligibility threshold:
+        // a bonus coin must never ask the player to wait on the clockwork.
+        _platform('clock-26a', 650, 445, 72),
+        _platform('clock-26b', 850, 365, 74),
+        _platform('clock-26c', 1070, 430, 76),
+        // A fixed breather island. Its flag respawns on the island itself.
+        _platform('safe-island-26', 1240, 440, 300, height: 160),
+        // The runway ends just before a lower pad, forcing a short fall onto
+        // it. A pad embedded in continuous ground would never trigger.
+        _platform('brake-runway-26', 1540, floorY, 420, height: 80),
+        _ground('g-26-exit', 2032, 408),
+        // Nothing is fake here: the flag is honest, but its island is not.
+        _platform('honest-island-26', 2480, 440, 330, cracked: true),
+      ],
+      spikes: [
+        // Walking through is safe. Jumping merely starts the bridge early
+        // and visibly shifts its rhythm, so the lesson never soft-locks.
+        _upSpike('fake-26a', 210, dangerous: false),
+        _upSpike('fake-26b', 290, dangerous: false),
+        _upSpike('fake-26c', 370, dangerous: false),
+        _upSpike('fake-26d', 450, dangerous: false),
+        _downSpike('panic-lid-26a', 210, 352),
+        _downSpike('panic-lid-26b', 290, 352),
+        _downSpike('panic-lid-26c', 370, 352),
+        _downSpike('panic-lid-26d', 450, 352),
+        // The first necessary jump, placed just beyond the low roof.
+        _upSpike('start-26', 550),
+        // A gentle pad launch peaks below these. Entering the pad quickly
+        // selects its wild velocity and makes the same visible roof lethal.
+        _downSpike('speed-lid-26a', 1960, 340),
+        _downSpike('speed-lid-26b', 2020, 340),
+      ],
+      jumpPads: [
+        JumpPad(
+          id: 'brake-pad-26',
+          rect: const Rect.fromLTWH(1960, 536, 72, 14),
+        ),
+      ],
+      iceZones: [
+        IceZone(
+          id: 'brake-ice-26',
+          rect: const Rect.fromLTWH(1540, floorY - 24, 420, 24),
+        ),
+      ],
+      checkpoints: [
+        Checkpoint(
+          id: 'cp-26a',
+          rect: const Rect.fromLTWH(1400, 382, 34, 58),
+        ),
+        _checkpoint('cp-26b', 2300),
+      ],
+      goal: Goal(rect: const Rect.fromLTWH(2670, 354, 54, 86)),
+      traps: [
+        ActivateMovingPlatformTrap(
+          platformId: 'clock-26a',
+          speed: 190,
+          minX: 640,
+          maxX: 780,
+        ),
+        ActivateMovingPlatformTrap(
+          platformId: 'clock-26b',
+          speed: -205,
+          minX: 820,
+          maxX: 960,
+        ),
+        ActivateMovingPlatformTrap(
+          platformId: 'clock-26c',
+          speed: 185,
+          minX: 1020,
+          maxX: 1160,
+        ),
+        DisappearPlatformTrap(platformId: 'honest-island-26', delay: 1.05),
+      ],
+    ),
+    // One short course, remembered incorrectly. The decoy flag sends the
+    // player back for a second lap: the familiar floor spike is now harmless,
+    // its harmless ceiling twin is armed, and the bridge has moved downstairs.
+    Level(
+      number: 27,
+      title: 'Déjà Troll',
+      width: 2200,
+      playerStart: _start(),
+      platforms: [
+        _ground('g-27-start', 0, 700),
+        // Keeps the harmless first-lap ceiling spike visually grounded and
+        // makes its second-lap danger readable rather than a floating trap.
+        _platform('memory-roof-27', 330, 310, 220),
+        // Round one is intentionally broad and readable.
+        _platform('lap1-27a', 740, 430, 220),
+        _platform('lap1-27b', 1000, 430, 220),
+        // These roofs preview the low second-lap corridor. Their tops are
+        // deliberately too high to become rare-coin spawn candidates.
+        _platform('lap2-roof-27a', 710, 310, 270),
+        _platform('lap2-roof-27b', 990, 310, 270),
+        // Round two swaps in a lower, tighter stepping-stone route.
+        Platform(
+          id: 'lap2-27a',
+          rect: const Rect.fromLTWH(730, 470, 76, 22),
+          solid: false,
+          visible: false,
+        ),
+        Platform(
+          id: 'lap2-27b',
+          rect: const Rect.fromLTWH(840, 445, 76, 22),
+          solid: false,
+          visible: false,
+        ),
+        Platform(
+          id: 'lap2-27c',
+          rect: const Rect.fromLTWH(950, 470, 76, 22),
+          solid: false,
+          visible: false,
+        ),
+        Platform(
+          id: 'lap2-27d',
+          rect: const Rect.fromLTWH(1060, 445, 76, 22),
+          solid: false,
+          visible: false,
+        ),
+        Platform(
+          id: 'lap2-27e',
+          rect: const Rect.fromLTWH(1170, 470, 76, 22),
+          solid: false,
+          visible: false,
+        ),
+        _ground('g-27-finish', 1280, 920),
+      ],
+      spikes: [
+        // Lap one teaches: jump the floor spike; the ceiling spike is set
+        // dressing. Lap two silently reverses only their dangerous flags.
+        _upSpike('memory-floor-27', 420),
+        Spike(
+          id: 'memory-ceiling-27',
+          rect: const Rect.fromLTWH(419, 332, 42, 38),
+          direction: SpikeDirection.down,
+          dangerous: false,
+        ),
+        Spike(
+          id: 'lap2-lid-27a',
+          rect: const Rect.fromLTWH(810, 332, 42, 38),
+          direction: SpikeDirection.down,
+          dangerous: false,
+        ),
+        Spike(
+          id: 'lap2-lid-27b',
+          rect: const Rect.fromLTWH(1030, 332, 42, 38),
+          direction: SpikeDirection.down,
+          dangerous: false,
+        ),
+        Spike(
+          id: 'lap2-lid-27c',
+          rect: const Rect.fromLTWH(1140, 332, 42, 38),
+          direction: SpikeDirection.down,
+          dangerous: false,
+        ),
+        // These remain honest and visible on both laps. The memory trick
+        // changes, but the course never becomes an invisible guessing game.
+        _upSpike('honest-27a', 1440),
+        _upSpike('honest-27b', 1660),
+      ],
+      decoyGoal: _goal(2040),
+      goal: _goal(2040, visible: false),
+      traps: [
+        SecondLapTrap(
+          returnPosition: _start(),
+          hidePlatformIds: ['lap1-27a', 'lap1-27b'],
+          showPlatformIds: [
+            'lap2-27a',
+            'lap2-27b',
+            'lap2-27c',
+            'lap2-27d',
+            'lap2-27e',
+          ],
+          armSpikeIds: [
+            'memory-ceiling-27',
+            'lap2-lid-27a',
+            'lap2-lid-27b',
+            'lap2-lid-27c',
+          ],
+          disarmSpikeIds: ['memory-floor-27'],
+        ),
+        DisappearPlatformTrap(platformId: 'lap2-27b', delay: 0.58),
+        DisappearPlatformTrap(platformId: 'lap2-27d', delay: 0.58),
       ],
     ),
   ];
