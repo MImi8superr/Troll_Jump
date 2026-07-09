@@ -15,9 +15,16 @@ import '../game/models.dart';
 import '../game/sfx.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key, this.initialLevelIndex = 0});
+  const GameScreen({
+    super.key,
+    this.initialLevelIndex = 0,
+    this.levelsOverride,
+  });
 
   final int initialLevelIndex;
+
+  @visibleForTesting
+  final List<Level>? levelsOverride;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -76,7 +83,7 @@ class _GameScreenState extends State<GameScreen>
   @override
   void initState() {
     super.initState();
-    _levels = buildLevels();
+    _levels = widget.levelsOverride ?? buildLevels();
     _loadLevel(widget.initialLevelIndex.clamp(0, _levels.length - 1));
     _ticker = createTicker(_tick)..start();
   }
@@ -190,6 +197,11 @@ class _GameScreenState extends State<GameScreen>
     _updateCheckpointsAndZones();
     _notifyTrapSounds();
     _checkHazardsAndBounds();
+    // A lethal contact wins frame resolution. Do not bank a coin or finish
+    // the level from the same player position after death has started.
+    if (_deathTimer > 0) {
+      return;
+    }
     _collectCoins();
     _checkGoal();
   }
@@ -544,8 +556,7 @@ class _GameScreenState extends State<GameScreen>
     final key = event.logicalKey;
     final isDown = event is KeyDownEvent;
 
-    if (key == LogicalKeyboardKey.arrowLeft ||
-        key == LogicalKeyboardKey.keyA) {
+    if (key == LogicalKeyboardKey.arrowLeft || key == LogicalKeyboardKey.keyA) {
       setState(() => _leftHeld = isDown);
     } else if (key == LogicalKeyboardKey.arrowRight ||
         key == LogicalKeyboardKey.keyD) {
