@@ -366,7 +366,7 @@ class _WheelPainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          color: Colors.white,
+          color: const Color(0xFF0F172A),
           fontSize: fontSize,
           fontWeight: FontWeight.w900,
         ),
