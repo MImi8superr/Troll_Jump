@@ -651,6 +651,7 @@ List<Level> buildLevels() {
           triggerX: 430,
           minX: 460,
           maxX: 1010,
+          speedFactor: 0.55,
         ),
         EvilTwinTrap(mirrorX: 1625),
         GoalRetreatTrap(triggerDistance: 90, retreatDistance: 90, speed: 260),

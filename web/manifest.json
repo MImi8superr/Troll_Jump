@@ -1,6 +1,6 @@
 {
-    "name": "troll_run",
-    "short_name": "troll_run",
+    "name": "troll_dash",
+    "short_name": "troll_dash",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

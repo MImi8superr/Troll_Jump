@@ -13,16 +13,16 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LevelProgress.load();
   await GameEconomy.load();
-  runApp(const TrollRunnerApp());
+  runApp(const TrollDashApp());
 }
 
-class TrollRunnerApp extends StatelessWidget {
-  const TrollRunnerApp({super.key});
+class TrollDashApp extends StatelessWidget {
+  const TrollDashApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Troll Runner',
+      title: 'Troll Dash',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
