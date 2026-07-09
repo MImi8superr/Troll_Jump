@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -19,12 +20,16 @@ class GameScreen extends StatefulWidget {
     super.key,
     this.initialLevelIndex = 0,
     this.levelsOverride,
+    this.randomOverride,
   });
 
   final int initialLevelIndex;
 
   @visibleForTesting
   final List<Level>? levelsOverride;
+
+  @visibleForTesting
+  final math.Random? randomOverride;
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -77,12 +82,13 @@ class _GameScreenState extends State<GameScreen>
   Rect? _rareCoinRect;
 
   final List<DeathParticle> _particles = [];
-  final math.Random _random = math.Random();
+  late final math.Random _random;
   final FocusNode _focusNode = FocusNode(debugLabel: 'game-keyboard');
 
   @override
   void initState() {
     super.initState();
+    _random = widget.randomOverride ?? math.Random();
     _levels = widget.levelsOverride ?? buildLevels();
     _loadLevel(widget.initialLevelIndex.clamp(0, _levels.length - 1));
     _ticker = createTicker(_tick)..start();
@@ -109,10 +115,12 @@ class _GameScreenState extends State<GameScreen>
     _levelIndex = index;
     _hasLoadedLevel = true;
     _level = _levels[index].copy();
-    // The rare coin is rolled once per level ENTRY — never re-rolled on
-    // death respawns or manual restarts, so it can't be farmed. An
-    // uncollected coin keeps its spot across deaths within the attempt.
-    if (freshEntry) {
+    // The rare coin is rolled once per level entry until it has been claimed.
+    // Deaths and manual restarts keep the same result and position; once the
+    // coin has paid out, later entries into this level cannot spawn it again.
+    if (GameEconomy.hasClaimedRareCoin(_level.number)) {
+      _rareCoinRect = null;
+    } else if (freshEntry) {
       _rareCoinRect = rollRareCoin(_level, _random)?.rect;
     }
     if (_rareCoinRect != null) {
@@ -428,8 +436,10 @@ class _GameScreenState extends State<GameScreen>
       coin.collected = true;
       if (coin.id == 'rare-coin') {
         _rareCoinRect = null; // Banked: don't respawn it after a death.
+        unawaited(GameEconomy.collectRareCoin(_level.number, coin.value));
+      } else {
+        unawaited(GameEconomy.addCoins(coin.value));
       }
-      GameEconomy.addCoins(coin.value);
       Sfx.checkpoint();
     }
   }

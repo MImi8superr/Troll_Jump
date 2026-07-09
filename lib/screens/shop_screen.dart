@@ -120,15 +120,20 @@ class _SpinCardState extends State<_SpinCard>
     super.dispose();
   }
 
-  void _spin() {
+  Future<void> _spin() async {
     if (_spinning) {
       return;
     }
+    setState(() => _spinning = true);
     // The outcome is decided and applied up front (safe if the screen is
     // closed mid-spin); the wheel then animates onto the matching segment
     // and only reveals the result text once it stops.
-    final prize = GameEconomy.spinWheel();
+    final prize = await GameEconomy.spinWheel();
+    if (!mounted) {
+      return;
+    }
     if (prize == null) {
+      setState(() => _spinning = false);
       return;
     }
 
@@ -149,7 +154,6 @@ class _SpinCardState extends State<_SpinCard>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutQuart),
     );
     _rotation = end;
-    setState(() => _spinning = true);
     _controller.forward(from: 0).whenComplete(() {
       if (!mounted) {
         return;
@@ -362,7 +366,7 @@ class _WheelPainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
-          color: Colors.white,
+          color: const Color(0xFF0F172A),
           fontSize: fontSize,
           fontWeight: FontWeight.w900,
         ),
@@ -415,9 +419,13 @@ class _SkinCard extends StatelessWidget {
           onPressed: selected
               ? null
               : owned
-                  ? () => GameEconomy.selectSkin(skin)
+                  ? () async {
+                      await GameEconomy.selectSkin(skin);
+                    }
                   : canBuy
-                      ? () => GameEconomy.buySkin(skin)
+                      ? () async {
+                          await GameEconomy.buySkin(skin);
+                        }
                       : null,
           child: Text(buttonText),
         ),

@@ -1,8 +1,10 @@
+import 'dart:math' as math;
 import 'dart:ui' show PictureRecorder;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:troll_dash/game/economy.dart';
 import 'package:troll_dash/game/game_painter.dart';
 import 'package:troll_dash/game/levels.dart';
 import 'package:troll_dash/game/models.dart';
@@ -87,4 +89,47 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  testWidgets('a claimed rare coin never respawns on level entry', (
+    tester,
+  ) async {
+    final level = buildLevels().first;
+    GameEconomy.state.value = EconomyState(
+      claimedRareCoinLevels: {level.number},
+    );
+    addTearDown(() {
+      GameEconomy.state.value = const EconomyState();
+    });
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: GameScreen(
+          levelsOverride: [level],
+          randomOverride: _AlwaysSpawnRandom(),
+        ),
+      ),
+    );
+
+    final gameCanvas = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .firstWhere((paint) => paint.painter is GamePainter);
+    final painter = gameCanvas.painter! as GamePainter;
+    expect(
+      painter.level.coins.where((coin) => coin.id == 'rare-coin'),
+      isEmpty,
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+}
+
+class _AlwaysSpawnRandom implements math.Random {
+  @override
+  bool nextBool() => false;
+
+  @override
+  double nextDouble() => 0;
+
+  @override
+  int nextInt(int max) => 0;
 }
