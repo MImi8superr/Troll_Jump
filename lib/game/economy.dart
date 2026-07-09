@@ -27,24 +27,29 @@ class EconomyState {
     this.coins = 0,
     this.ownedSkinIds = const {'blue'},
     this.selectedSkinId = 'blue',
+    this.claimedRareCoinLevels = const {},
     this.lastSpinResult,
   });
 
   final int coins;
   final Set<String> ownedSkinIds;
   final String selectedSkinId;
+  final Set<int> claimedRareCoinLevels;
   final String? lastSpinResult;
 
   EconomyState copyWith({
     int? coins,
     Set<String>? ownedSkinIds,
     String? selectedSkinId,
+    Set<int>? claimedRareCoinLevels,
     String? lastSpinResult,
   }) {
     return EconomyState(
       coins: coins ?? this.coins,
       ownedSkinIds: ownedSkinIds ?? this.ownedSkinIds,
       selectedSkinId: selectedSkinId ?? this.selectedSkinId,
+      claimedRareCoinLevels:
+          claimedRareCoinLevels ?? this.claimedRareCoinLevels,
       lastSpinResult: lastSpinResult,
     );
   }
@@ -142,11 +147,21 @@ class GameEconomy {
           owned.add(id);
         }
       }
+      final claimedRareCoinLevels = <int>{};
+      final claimed = decoded['claimedRareCoinLevels'];
+      if (claimed is List<dynamic>) {
+        for (final levelNumber in claimed) {
+          if (levelNumber is int && levelNumber > 0) {
+            claimedRareCoinLevels.add(levelNumber);
+          }
+        }
+      }
       final selected = decoded['selectedSkinId'] as String;
       return EconomyState(
         coins: math.max(0, decoded['coins'] as int),
         ownedSkinIds: owned,
         selectedSkinId: owned.contains(selected) ? selected : 'blue',
+        claimedRareCoinLevels: claimedRareCoinLevels,
       );
     } catch (_) {
       return null;
@@ -155,11 +170,13 @@ class GameEconomy {
 
   static String _encodeState(EconomyState value) {
     final owned = value.ownedSkinIds.toList()..sort();
+    final claimedRareCoinLevels = value.claimedRareCoinLevels.toList()..sort();
     return jsonEncode({
       'version': _storageVersion,
       'coins': value.coins,
       'ownedSkinIds': owned,
       'selectedSkinId': value.selectedSkinId,
+      'claimedRareCoinLevels': claimedRareCoinLevels,
     });
   }
 
@@ -187,6 +204,28 @@ class GameEconomy {
     );
     state.value = updated;
     await _persist(updated);
+  }
+
+  static bool hasClaimedRareCoin(int levelNumber) {
+    return state.value.claimedRareCoinLevels.contains(levelNumber);
+  }
+
+  /// Banks a level's rare coin at most once. The claim and its coin value are
+  /// committed in the same record, so neither half can survive on its own.
+  static Future<bool> collectRareCoin(int levelNumber, int amount) async {
+    final current = state.value;
+    if (levelNumber <= 0 ||
+        current.claimedRareCoinLevels.contains(levelNumber)) {
+      return false;
+    }
+    final updated = current.copyWith(
+      coins: current.coins + amount,
+      claimedRareCoinLevels: {...current.claimedRareCoinLevels, levelNumber},
+      lastSpinResult: current.lastSpinResult,
+    );
+    state.value = updated;
+    await _persist(updated);
+    return true;
   }
 
   static Future<bool> buySkin(PlayerSkin skin) async {

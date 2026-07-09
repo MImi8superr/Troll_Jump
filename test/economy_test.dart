@@ -62,6 +62,7 @@ void main() {
     expect(migrated['coins'], 12);
     expect(migrated['ownedSkinIds'], containsAll(['blue', 'pink']));
     expect(migrated['selectedSkinId'], 'pink');
+    expect(migrated['claimedRareCoinLevels'], isEmpty);
     expect(prefs.containsKey('economy_coins'), isFalse);
     expect(prefs.containsKey('economy_owned_skins'), isFalse);
     expect(prefs.containsKey('economy_selected_skin'), isFalse);
@@ -82,6 +83,7 @@ void main() {
     expect(GameEconomy.state.value.coins, 9);
     expect(GameEconomy.state.value.ownedSkinIds, containsAll(['blue', 'gold']));
     expect(GameEconomy.state.value.selectedSkinId, 'gold');
+    expect(GameEconomy.state.value.claimedRareCoinLevels, isEmpty);
   });
 
   test('load falls back to blue when the selected skin is not owned', () async {
@@ -101,6 +103,7 @@ void main() {
     expect(persisted['coins'], 4);
     expect(persisted['ownedSkinIds'], ['blue']);
     expect(persisted['selectedSkinId'], 'blue');
+    expect(persisted['claimedRareCoinLevels'], isEmpty);
     expect(prefs.containsKey('economy_coins'), isFalse);
     expect(prefs.containsKey('economy_owned_skins'), isFalse);
     expect(prefs.containsKey('economy_selected_skin'), isFalse);
@@ -111,5 +114,30 @@ void main() {
     expect(persisted['coins'], 0);
     expect(persisted['ownedSkinIds'], containsAll(['blue', 'lime']));
     expect(persisted['selectedSkinId'], 'lime');
+  });
+
+  test('a rare coin is credited only once per level', () async {
+    expect(await GameEconomy.collectRareCoin(19, 3), isTrue);
+    expect(GameEconomy.state.value.coins, 3);
+    expect(GameEconomy.hasClaimedRareCoin(19), isTrue);
+
+    expect(await GameEconomy.collectRareCoin(19, 3), isFalse);
+    expect(GameEconomy.state.value.coins, 3);
+
+    expect(await GameEconomy.collectRareCoin(24, 3), isTrue);
+    expect(GameEconomy.state.value.coins, 6);
+
+    final prefs = await SharedPreferences.getInstance();
+    final persisted = jsonDecode(prefs.getString('economy_state')!);
+    expect(persisted['coins'], 6);
+    expect(persisted['claimedRareCoinLevels'], [19, 24]);
+
+    GameEconomy.state.value = const EconomyState();
+    await GameEconomy.load();
+    expect(GameEconomy.state.value.coins, 6);
+    expect(
+      GameEconomy.state.value.claimedRareCoinLevels,
+      containsAll([19, 24]),
+    );
   });
 }
