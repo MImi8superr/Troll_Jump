@@ -31,9 +31,10 @@ void main() {
   });
 
   test('spin wheel charges its cost and never goes negative', () {
-    expect(GameEconomy.spinWheel(), isFalse, reason: '0 < 5');
+    expect(GameEconomy.spinWheel(), isNull, reason: '0 < 5');
     GameEconomy.addCoins(GameEconomy.spinCost);
-    expect(GameEconomy.spinWheel(), isTrue);
+    final prize = GameEconomy.spinWheel();
+    expect(prize, isNotNull, reason: 'affordable spin returns its prize');
     expect(GameEconomy.state.value.coins, greaterThanOrEqualTo(0));
     expect(GameEconomy.state.value.lastSpinResult, isNotNull);
   });

@@ -392,8 +392,9 @@ class GamePainter extends CustomPainter {
 
   /// Blacks out the world while the player is inside a dark zone, leaving a
   /// soft light circle around the player, lantern glows at checkpoints,
-  /// glowing goals, freshly-triggered spikes — and everything during the
-  /// periodic lightning flash.
+  /// glowing goals, and freshly-triggered spikes. Right after first entry
+  /// the zone grants one brief fully-lit look around, then it's
+  /// flashlight only.
   void _drawDarkness(Canvas canvas, Size size, double scale) {
     DarkZone? active;
     for (final zone in level.darkZones) {
@@ -402,7 +403,7 @@ class GamePainter extends CustomPainter {
         break;
       }
     }
-    if (active == null || active.flashing) {
+    if (active == null || active.revealing) {
       return;
     }
 
