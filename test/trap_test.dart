@@ -252,16 +252,37 @@ void main() {
   });
 
   group('DarkZone (level 23)', () {
-    test('lightning flash cycles with time', () {
+    test('one preview on first entry, then flashlight only', () {
       final zone = DarkZone(
         id: 'dz',
-        rect: const Rect.fromLTWH(0, 0, 100, 100),
+        rect: const Rect.fromLTWH(0, 0, 200, worldHeight),
+        previewDuration: 1.0,
       );
-      expect(zone.flashing, isTrue); // t=0 is inside the first flash window
-      zone.update(0.5);
-      expect(zone.flashing, isFalse);
-      zone.update(2.75); // t=3.25 -> 3.25 % 3.2 = 0.05 < 0.16
-      expect(zone.flashing, isTrue);
+      final outside = Player(
+        start: Offset(500, floorY - playerSize.height),
+      );
+      final inside = Player(
+        start: Offset(50, floorY - playerSize.height),
+      );
+
+      // Before entering: no preview running.
+      zone.update(1 / 60, outside);
+      expect(zone.revealing, isFalse);
+
+      // First entry: the full view stays lit for the preview window.
+      zone.update(1 / 60, inside);
+      expect(zone.revealing, isTrue);
+
+      // After the preview elapses, darkness takes over for good.
+      for (var i = 0; i < 70; i++) {
+        zone.update(1 / 60, inside);
+      }
+      expect(zone.revealing, isFalse);
+
+      // Leaving and re-entering does NOT grant another preview.
+      zone.update(1 / 60, outside);
+      zone.update(1 / 60, inside);
+      expect(zone.revealing, isFalse);
     });
 
     test('level 23 wraps its dark stretch in a zone', () {
