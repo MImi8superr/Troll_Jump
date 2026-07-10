@@ -112,7 +112,7 @@ class _FakeWinScreenState extends State<FakeWinScreen> {
                 ),
                 const SizedBox(height: 14),
                 const Text(
-                  'The trolls built twelve more levels while you were celebrating.',
+                  'The trolls built fourteen more levels while you were celebrating.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,

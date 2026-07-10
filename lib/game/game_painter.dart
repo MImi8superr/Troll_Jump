@@ -43,6 +43,7 @@ class GamePainter extends CustomPainter {
 
     _drawBackground(canvas, size, visibleWorldWidth);
     _drawReverseZones(canvas, scale);
+    _drawEchoBoundaries(canvas, scale);
     _drawJumpPads(canvas, scale);
     _drawCoins(canvas, scale);
     _drawPlatforms(canvas, scale);
@@ -55,6 +56,7 @@ class GamePainter extends CustomPainter {
       _drawGoalFlag(canvas, scale, decoy);
     }
     _drawGoalFlag(canvas, scale, level.goal);
+    _drawEchoes(canvas, scale);
     _drawEvilTwins(canvas, scale);
     if (!hidePlayer) {
       _drawPlayer(canvas, scale);
@@ -111,16 +113,31 @@ class GamePainter extends CustomPainter {
         continue;
       }
       final rect = _toScreen(platform.rect, scale);
+      final rrect = RRect.fromRectAndRadius(rect, Radius.circular(5 * scale));
+      if (platform.ghost) {
+        // The inactive quantum world: a faint promise of a platform. The
+        // flash still shows through so world swaps read at a glance.
+        final fill = Paint()
+          ..color = _flash(
+            platform.color,
+            platform.flash,
+            const Color(0xFFFFF176),
+          ).withValues(alpha: 0.22);
+        canvas.drawRRect(rrect, fill);
+        final outline = Paint()
+          ..color = platform.color.withValues(alpha: 0.55)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1, 1.6 * scale);
+        canvas.drawRRect(rrect, outline);
+        continue;
+      }
       final paint = Paint()
         ..color = _flash(
           platform.color,
           platform.flash,
           const Color(0xFFFFF176),
         );
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, Radius.circular(5 * scale)),
-        paint,
-      );
+      canvas.drawRRect(rrect, paint);
 
       if (platform.cracked) {
         final crack = Paint()
@@ -358,6 +375,65 @@ class GamePainter extends CustomPainter {
     canvas.drawCircle(rightEye, eyeRadius, eye);
     canvas.drawCircle(leftEye, eyeRadius * 0.45, pupil);
     canvas.drawCircle(rightEye, eyeRadius * 0.45, pupil);
+  }
+
+  /// The line behind which the player's echo turns hostile.
+  void _drawEchoBoundaries(Canvas canvas, double scale) {
+    for (final trap in level.traps.whereType<EchoTrap>()) {
+      final x = (trap.armX - cameraX) * scale;
+      final band = Paint()
+        ..shader = LinearGradient(
+          colors: [
+            const Color(0xFFDC2626).withValues(alpha: 0.35),
+            const Color(0xFFDC2626).withValues(alpha: 0),
+          ],
+        ).createShader(Rect.fromLTWH(x, 0, 26 * scale, floorY * scale));
+      canvas.drawRect(Rect.fromLTWH(x, 0, 26 * scale, floorY * scale), band);
+      final line = Paint()
+        ..color = const Color(0xFFDC2626).withValues(alpha: 0.7)
+        ..strokeWidth = math.max(1.5, 3 * scale);
+      canvas.drawLine(Offset(x, 0), Offset(x, floorY * scale), line);
+    }
+  }
+
+  /// The player's own past, replayed: friendly in the skin color while
+  /// harmless, glowing red once it can kill.
+  void _drawEchoes(Canvas canvas, double scale) {
+    for (final trap in level.traps.whereType<EchoTrap>()) {
+      final echo = trap.echoRect;
+      if (echo == null) {
+        continue;
+      }
+      final rect = _toScreen(echo, scale);
+      final deadly = trap.echoDeadly;
+      final baseColor = deadly ? const Color(0xFFDC2626) : playerColor;
+      if (deadly) {
+        final glow = Paint()
+          ..color = baseColor.withValues(alpha: 0.25)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(rect.inflate(5), Radius.circular(9 * scale)),
+          glow,
+        );
+      }
+      final body = Paint()..color = baseColor.withValues(alpha: 0.5);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(8 * scale)),
+        body,
+      );
+      final eye = Paint()..color = Colors.white.withValues(alpha: 0.6);
+      final eyeRadius = 3.2 * scale;
+      canvas.drawCircle(
+        Offset(rect.left + rect.width * 0.34, rect.top + 15 * scale),
+        eyeRadius,
+        eye,
+      );
+      canvas.drawCircle(
+        Offset(rect.left + rect.width * 0.66, rect.top + 15 * scale),
+        eyeRadius,
+        eye,
+      );
+    }
   }
 
   void _drawEvilTwins(Canvas canvas, double scale) {

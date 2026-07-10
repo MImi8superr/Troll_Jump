@@ -171,6 +171,7 @@ class Platform {
     this.maxX,
     this.flash = 0,
     this.cracked = false,
+    this.ghost = false,
   });
 
   final String id;
@@ -186,6 +187,11 @@ class Platform {
   double flash;
   bool cracked;
 
+  /// Rendered as a faint outline of itself: present, but not real right
+  /// now. Quantum platforms use this for the currently-inactive world;
+  /// ghost platforms should also be non-solid.
+  bool ghost;
+
   Platform copy() {
     return Platform(
       id: id,
@@ -200,6 +206,7 @@ class Platform {
       maxX: maxX,
       flash: flash,
       cracked: cracked,
+      ghost: ghost,
     );
   }
 
@@ -629,6 +636,11 @@ abstract class Trap {
   void onPlayerJump(Level level, Player player) {}
 
   void onPlayerLanding(Level level, Player player, Platform platform) {}
+
+  /// A lethal body this trap currently projects into the world (the evil
+  /// twin, the echo, ...). The engine kills the player on overlap; return
+  /// null while the trap poses no touch danger.
+  Rect? hazardRect(Player player) => null;
 
   Trap copy();
 }
@@ -1436,6 +1448,9 @@ class EvilTwinTrap extends Trap {
   }
 
   @override
+  Rect? hazardRect(Player player) => twinRect(player);
+
+  @override
   void update(Level level, Player player, double dt) {
     if (!triggered && twinRect(player) != null) {
       triggered = true; // The twin steps out of the mirror: play the sting.
@@ -1445,5 +1460,116 @@ class EvilTwinTrap extends Trap {
   @override
   Trap copy() {
     return EvilTwinTrap(mirrorX: mirrorX, range: range);
+  }
+}
+
+/// Schrödinger's bridge: two platform worlds, exactly one of them real.
+/// Every NORMAL jump toggles which one — the active group turns ghostly the
+/// moment the player leaves the ground, and the other solidifies. Jump-pad
+/// launches are not jumps and deliberately do not toggle.
+///
+/// The toggle is fully deterministic: same number of jumps, same world.
+/// Hopping in place on neutral ground is a legitimate way to set parity —
+/// hopping on a quantum platform, however, dissolves it beneath you.
+class QuantumSwapTrap extends Trap {
+  QuantumSwapTrap({required this.groupA, required this.groupB})
+    : super(TrapTriggerType.playerJump);
+
+  final List<String> groupA;
+  final List<String> groupB;
+
+  /// Level data starts with group A solid and group B ghosted.
+  bool aActive = true;
+
+  @override
+  void onPlayerJump(Level level, Player player) {
+    triggered = true;
+    aActive = !aActive;
+    _apply(level, groupA, solid: aActive);
+    _apply(level, groupB, solid: !aActive);
+  }
+
+  void _apply(Level level, List<String> ids, {required bool solid}) {
+    for (final id in ids) {
+      final platform = level.platformById(id);
+      if (platform == null) {
+        continue;
+      }
+      platform.solid = solid;
+      platform.ghost = !solid;
+      platform.flash = 0.3;
+    }
+  }
+
+  @override
+  Trap copy() {
+    return QuantumSwapTrap(groupA: List.of(groupA), groupB: List.of(groupB));
+  }
+}
+
+/// A translucent copy of the player that replays their own movement with a
+/// fixed [delay]. Harmless in the starting room; past [armX] it glows red
+/// and kills on touch. Standing still lets your own past catch up with you.
+///
+/// The trail records positions the player actually occupied, so the echo
+/// can never clip through anything the player didn't. It resets whenever
+/// the level does, and the engine clears it on every checkpoint capture so
+/// a fresh section starts with a fresh echo.
+class EchoTrap extends Trap {
+  EchoTrap({this.delay = 1.2, required this.armX})
+    : super(TrapTriggerType.playerProximity);
+
+  final double delay;
+  final double armX;
+
+  double _time = 0;
+  final List<(double, Offset)> _trail = [];
+
+  /// Where the echo currently stands, or null while the trail is still
+  /// shorter than [delay].
+  Rect? get echoRect {
+    final target = _time - delay;
+    if (target < 0 || _trail.isEmpty || _trail.first.$1 > target) {
+      return null;
+    }
+    var position = _trail.first.$2;
+    for (final (t, p) in _trail) {
+      if (t > target) {
+        break;
+      }
+      position = p;
+    }
+    return position & playerSize;
+  }
+
+  /// The echo is only lethal once it has itself crossed the arming line.
+  bool get echoDeadly {
+    final rect = echoRect;
+    return rect != null && rect.center.dx > armX;
+  }
+
+  void clearTrail() {
+    _trail.clear();
+    _time = 0;
+  }
+
+  @override
+  void update(Level level, Player player, double dt) {
+    _time += dt;
+    _trail.add((_time, player.position));
+    while (_trail.length > 1 && _trail[1].$1 <= _time - delay) {
+      _trail.removeAt(0);
+    }
+    if (!triggered && player.center.dx > armX) {
+      triggered = true; // The boundary sting: your past is now hostile.
+    }
+  }
+
+  @override
+  Rect? hazardRect(Player player) => echoDeadly ? echoRect : null;
+
+  @override
+  Trap copy() {
+    return EchoTrap(delay: delay, armX: armX);
   }
 }
