@@ -88,7 +88,7 @@ void main() {
       expect(spawn.dx, 600 + (34 - playerSize.width) / 2);
     });
 
-    test('levels 13-15 and 17-26 have a checkpoint', () {
+    test('levels 13-15 and 17-29 have a checkpoint', () {
       final levels = buildLevels();
       for (final number in [
         13,
@@ -104,6 +104,8 @@ void main() {
         24,
         25,
         26,
+        28,
+        29,
       ]) {
         final level = levels.firstWhere((level) => level.number == number);
         expect(level.checkpoints, isNotEmpty, reason: 'level $number');
@@ -467,10 +469,105 @@ void main() {
     });
   });
 
+  group('QuantumSwapTrap (level 28)', () {
+    Level level28() =>
+        buildLevels().firstWhere((level) => level.number == 28).copy();
+
+    test('every quantum group id resolves to a platform', () {
+      final level = level28();
+      final trap = level.traps.whereType<QuantumSwapTrap>().single;
+      for (final id in [...trap.groupA, ...trap.groupB]) {
+        expect(level.platformById(id), isNotNull, reason: id);
+      }
+    });
+
+    test('worlds start A-solid/B-ghost and flip deterministically', () {
+      final level = level28();
+      final trap = level.traps.whereType<QuantumSwapTrap>().single;
+      final player = Player(start: level.playerStart);
+
+      void expectState({required bool aSolid}) {
+        for (final id in trap.groupA) {
+          final platform = level.platformById(id)!;
+          expect(platform.solid, aSolid, reason: 'A/$id solid');
+          expect(platform.ghost, !aSolid, reason: 'A/$id ghost');
+        }
+        for (final id in trap.groupB) {
+          final platform = level.platformById(id)!;
+          expect(platform.solid, !aSolid, reason: 'B/$id solid');
+          expect(platform.ghost, aSolid, reason: 'B/$id ghost');
+        }
+      }
+
+      expectState(aSolid: true);
+      trap.onPlayerJump(level, player);
+      expectState(aSolid: false);
+      trap.onPlayerJump(level, player);
+      expectState(aSolid: true);
+      // Same jump count, same world: parity is deterministic.
+      expect(trap.aActive, isTrue);
+    });
+
+    test('the finale platform and exit are consistent', () {
+      final level = level28();
+      final trap = level.traps.whereType<QuantumSwapTrap>().single;
+      // The exit block and both checkpoints must be neutral ground.
+      for (final id in ['exit-28', 'g28-start', 'g28-mid1', 'g28-mid2']) {
+        expect(trap.groupA.contains(id), isFalse, reason: id);
+        expect(trap.groupB.contains(id), isFalse, reason: id);
+      }
+    });
+  });
+
+  group('EchoTrap (level 29)', () {
+    test('echo trails the player with the configured delay', () {
+      final level =
+          buildLevels().firstWhere((level) => level.number == 29).copy();
+      final trap = EchoTrap(delay: 0.5, armX: 260);
+      final player = Player(start: Offset(100, floorY - playerSize.height));
+
+      // Shorter than the delay: no echo yet.
+      for (var i = 0; i < 20; i++) {
+        trap.update(level, player, 1 / 60);
+      }
+      expect(trap.echoRect, isNull);
+
+      // After the delay the echo stands where the player used to be.
+      for (var i = 0; i < 15; i++) {
+        trap.update(level, player, 1 / 60);
+      }
+      expect(trap.echoRect, isNotNull);
+      expect(trap.echoRect!.left, closeTo(100, 0.001));
+      expect(trap.echoDeadly, isFalse, reason: 'still inside the safe room');
+
+      // The player moves past the line; the echo follows and turns lethal.
+      player.position = Offset(600, floorY - playerSize.height);
+      for (var i = 0; i < 40; i++) {
+        trap.update(level, player, 1 / 60);
+      }
+      expect(trap.echoDeadly, isTrue);
+      expect(trap.hazardRect(player), isNotNull);
+
+      // Wiping the trail (checkpoint capture) removes the echo entirely.
+      trap.clearTrail();
+      expect(trap.echoRect, isNull);
+      expect(trap.hazardRect(player), isNull);
+    });
+
+    test('level 29 forces the last touch beyond the red line', () {
+      final level = buildLevels().firstWhere((level) => level.number == 29);
+      final echo = level.traps.whereType<EchoTrap>().single;
+      // The real goal stands past armX, so the echo is still lethal there.
+      expect(level.goal.rect.center.dx, greaterThan(echo.armX));
+      // And the player start is safely inside the demo room.
+      expect(level.playerStart.dx, lessThan(echo.armX));
+    });
+  });
+
   group('level data sanity', () {
     test('all levels are internally consistent', () {
       final levels = buildLevels();
-      expect(levels.length, 27);
+      expect(levels.length, 29);
 
       for (final level in levels) {
         // The goal must sit inside the level bounds.

@@ -292,6 +292,11 @@ class _GameScreenState extends State<GameScreen>
     _coyoteTimer = 0;
     _jumpCuttable = true;
     Sfx.jump();
+    // On Schrödinger levels every jump flips the worlds — give the flip its
+    // own audible tick on top of the jump sweep.
+    if (_level.traps.any((trap) => trap is QuantumSwapTrap)) {
+      Sfx.swap();
+    }
 
     // A tap that was already released (e.g. a buffered jump) becomes a short
     // hop right away instead of a full-height jump.
@@ -446,6 +451,11 @@ class _GameScreenState extends State<GameScreen>
         checkpoint.flash = 0.6;
         _checkpointSpawn = checkpoint.spawnPosition;
         _checkpointId = checkpoint.id;
+        // A fresh section deserves a fresh past: capturing a checkpoint
+        // wipes the echo's movement history.
+        for (final trap in _level.traps.whereType<EchoTrap>()) {
+          trap.clearTrail();
+        }
         Sfx.checkpoint();
       }
     }
@@ -515,10 +525,11 @@ class _GameScreenState extends State<GameScreen>
       }
     }
 
-    // The evil twin kills on touch; jump over it at the mirror line.
-    for (final trap in _level.traps.whereType<EvilTwinTrap>()) {
-      final twin = trap.twinRect(_player);
-      if (twin != null && _player.rect.deflate(3).overlaps(twin.deflate(3))) {
+    // Traps that project a lethal body into the world (the evil twin, the
+    // echo, ...) kill on touch; jump over them.
+    for (final trap in _level.traps) {
+      final body = trap.hazardRect(_player);
+      if (body != null && _player.rect.deflate(3).overlaps(body.deflate(3))) {
         _die();
         return;
       }

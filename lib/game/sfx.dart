@@ -20,6 +20,7 @@ class Sfx {
   static void death() => _play('death');
   static void goal() => _play('goal');
   static void checkpoint() => _play('checkpoint');
+  static void swap() => _play('swap');
 
   static Future<void> _play(String name) async {
     if (muted.value) {

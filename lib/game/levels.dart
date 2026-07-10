@@ -1051,6 +1051,151 @@ List<Level> buildLevels() {
         DisappearPlatformTrap(platformId: 'lap2-27d', delay: 0.58),
       ],
     ),
+    // Two platform worlds, exactly one of them real. Every normal jump
+    // flips which — pad launches don't count. The rule the level teaches:
+    // aim for the ghost, because your own jump is what makes it real.
+    Level(
+      number: 28,
+      title: "Schrödinger's Bridge",
+      width: 2760,
+      playerStart: _start(),
+      platforms: [
+        _ground('g28-start', 0, 520),
+        // Demo pair over solid ground: hop around, watch the worlds flip,
+        // fall through a ghost harmlessly. Nothing here can kill.
+        _quantumA('qa-demo', 340, 430, 70),
+        _quantumB('qb-demo', 430, 430, 70),
+        // Bridge one: strict alternation. The first stone must be a ghost
+        // when you jump — your jump solidifies it.
+        _quantumB('b28-1', 570, 430, 110),
+        _quantumA('a28-1', 730, 430, 110),
+        _quantumB('b28-2', 890, 430, 110),
+        _quantumA('a28-2', 1050, 430, 90),
+        _ground('g28-mid1', 1150, 250),
+        // Bridge two: at the fork, the solid-looking stone is the lie.
+        _quantumB('b28-3', 1450, 430, 100),
+        _quantumA('a28-3', 1610, 430, 100),
+        _quantumB('b28-4', 1770, 430, 100),
+        _quantumA('bait-28', 1785, 475, 90),
+        _quantumA('a28-4', 1930, 430, 90),
+        _ground('g28-mid2', 2050, 280),
+        // The finale platform obeys the same rule as everything else: it
+        // must be a ghost when you jump onto the pad, because that jump
+        // flips it and the launch itself never will.
+        _quantumA('finale-28', 2400, 340, 140),
+        _platform('exit-28', 2570, 340, 190, height: 260),
+      ],
+      spikes: [
+        // Forces the demonstration jump right next to the demo pair.
+        _upSpike('intro-28', 250),
+      ],
+      jumpPads: [
+        // Harmless rehearsal: launches high over solid ground, and the
+        // worlds visibly do NOT flip mid-flight.
+        JumpPad(
+          id: 'demo-pad-28',
+          rect: const Rect.fromLTWH(2090, floorY - 14, 72, 14),
+        ),
+        JumpPad(
+          id: 'launch-28',
+          rect: const Rect.fromLTWH(2240, floorY - 14, 72, 14),
+        ),
+      ],
+      checkpoints: [
+        // Both flags stand on neutral ground that never flips.
+        _checkpoint('cp-28a', 1220),
+        _checkpoint('cp-28b', 2170),
+      ],
+      goal: Goal(rect: const Rect.fromLTWH(2650, 340 - 86, 54, 86)),
+      traps: [
+        QuantumSwapTrap(
+          groupA: [
+            'qa-demo',
+            'a28-1',
+            'a28-2',
+            'a28-3',
+            'bait-28',
+            'a28-4',
+            'finale-28',
+          ],
+          groupB: ['qb-demo', 'b28-1', 'b28-2', 'b28-3', 'b28-4'],
+        ),
+      ],
+    ),
+    // A translucent echo replays your movement 1.2 seconds late. Harmless
+    // in the entry room, lethal past the red line. The perfect run out is
+    // the enemy on the way back — and it catches up whenever you stand
+    // still. Checkpoints wipe its memory.
+    Level(
+      number: 29,
+      title: 'Echo Chamber',
+      width: 2320,
+      playerStart: _start(),
+      platforms: [
+        // One continuous floor: the lower level doubles as the return
+        // route, so falling from above is a detour, never a death.
+        _ground('g29-floor', 0, 2260),
+        _wall('turn-wall-29', 2260, 180),
+        // Thin two-story architecture: the outward route runs on top.
+        _platform('step-29', 430, 430, 80),
+        _platform('u29-1', 540, 340, 320),
+        _platform('u29-2', 930, 340, 340),
+        _platform('u29-3', 1340, 340, 330),
+        _platform('u29-4', 1740, 340, 220),
+        _platform('trapdoor-29', 1960, 340, 150, cracked: true),
+        // Low roofs force short, precise hops while the echo tails you.
+        _platform('roof-29a', 600, 150, 220),
+        _platform('roof-29b', 1400, 150, 220),
+      ],
+      spikes: [
+        Spike(
+          id: 'lid-29a',
+          rect: const Rect.fromLTWH(640, 172, 42, 38),
+          direction: SpikeDirection.down,
+        ),
+        Spike(
+          id: 'lid-29b',
+          rect: const Rect.fromLTWH(720, 172, 42, 38),
+          direction: SpikeDirection.down,
+        ),
+        Spike(
+          id: 'lid-29c',
+          rect: const Rect.fromLTWH(1450, 172, 42, 38),
+          direction: SpikeDirection.down,
+        ),
+        Spike(
+          id: 'lid-29d',
+          rect: const Rect.fromLTWH(1530, 172, 42, 38),
+          direction: SpikeDirection.down,
+        ),
+        // Hopped on the way out (from above they sit under your route)...
+        Spike(id: 'up-29a', rect: const Rect.fromLTWH(760, 304, 40, 36)),
+        Spike(id: 'up-29b', rect: const Rect.fromLTWH(1560, 304, 40, 36)),
+        // ...and these two only matter on the lower return route.
+        _upSpike('floor-29a', 1100),
+        _upSpike('floor-29b', 600),
+      ],
+      checkpoints: [
+        Checkpoint(
+          id: 'cp-29a',
+          rect: const Rect.fromLTWH(1180, 340 - 58, 34, 58),
+        ),
+        _checkpoint('cp-29b', 2150),
+      ],
+      decoyGoal: Goal(rect: const Rect.fromLTWH(2040, 340 - 86, 54, 86)),
+      // The real goal stands just PAST the red line, so the last touch
+      // happens where your echo is still lethal: outrun yourself once more.
+      goal: _goal(300, visible: false),
+      traps: [
+        EchoTrap(armX: 260),
+        BreakPlatformTrap(
+          platformId: 'trapdoor-29',
+          triggerX: 1995,
+          delay: 0.22,
+        ),
+        FakeGoalTrap(revealSpikeIds: []),
+      ],
+    ),
   ];
 }
 
@@ -1128,6 +1273,26 @@ IceZone _iceZone(String id, double x, double width) {
 DarkZone _darkZone(String id, double x, double width) {
   // Full-height: darkness rules the whole screen while the player is inside.
   return DarkZone(id: id, rect: Rect.fromLTWH(x, 0, width, worldHeight));
+}
+
+/// Quantum world A (blue): starts solid; every jump may ghost it.
+Platform _quantumA(String id, double x, double y, double width) {
+  return Platform(
+    id: id,
+    rect: Rect.fromLTWH(x, y, width, 22),
+    color: const Color(0xFF1D4ED8),
+  );
+}
+
+/// Quantum world B (violet): starts as a ghost; a jump makes it real.
+Platform _quantumB(String id, double x, double y, double width) {
+  return Platform(
+    id: id,
+    rect: Rect.fromLTWH(x, y, width, 22),
+    color: const Color(0xFF7C3AED),
+    solid: false,
+    ghost: true,
+  );
 }
 
 Platform _wall(String id, double x, double height, {bool solid = true}) {
