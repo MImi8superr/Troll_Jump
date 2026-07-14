@@ -20,6 +20,7 @@ void main() {
 
     expect(find.text('Troll Dash'), findsOneWidget);
     expect(find.text('Level auswählen'), findsOneWidget);
+    expect(find.text('Ein Spiel von Mias Ehrensperger'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Level auswählen'));
     await tester.pumpAndSettle();

@@ -11,6 +11,22 @@ class MainMenu extends StatelessWidget {
         child: Stack(
           children: [
             const _MenuBackdrop(),
+            // The maker's mark: visible on every launch.
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Ein Spiel von Mias Ehrensperger',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: Transform.translate(
                 offset: const Offset(0, -36),
@@ -31,7 +47,7 @@ class MainMenu extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       const Text(
-                        'Tiny jumps. Mean traps. Twenty-seven levels.',
+                        'Tiny jumps. Mean traps. Twenty-nine levels.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
