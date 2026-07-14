@@ -153,7 +153,7 @@ jobs:
 
           team_id = os.environ["APPLE_TEAM_ID"]
           profile_name = os.environ["PROFILE_NAME"]
-          bundle_id = "ch.gregiwaller.trollrunner"
+          bundle_id = "ch.gregiwaller.trolldash"
 
           def upsert(setting_block: str, key: str, value: str) -> str:
               pattern = rf"(\n\s*){re.escape(key)} = [^;]+;"
@@ -204,7 +204,7 @@ jobs:
             <string>manual</string>
             <key>provisioningProfiles</key>
             <dict>
-              <key>ch.gregiwaller.trollrunner</key>
+              <key>ch.gregiwaller.trolldash</key>
               <string>${{ env.PROFILE_NAME }}</string>
             </dict>
           </dict>
