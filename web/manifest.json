@@ -1,12 +1,12 @@
 {
-    "name": "troll_dash",
-    "short_name": "troll_dash",
+    "name": "Troll Dash",
+    "short_name": "Troll Dash",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#BFE7FF",
+    "theme_color": "#2563EB",
+    "description": "A troll platformer: 29 levels of traps that use your own habits against you.",
+    "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [
         {

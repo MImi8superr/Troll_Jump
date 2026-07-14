@@ -52,7 +52,17 @@ class WinScreen extends StatelessWidget {
                     color: Color(0xFF65A30D),
                   ),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 18),
+                const Text(
+                  'A game by Mias Ehrensperger',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF14532D),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 Wrap(
                   spacing: 14,
                   runSpacing: 14,

@@ -19,12 +19,13 @@ void main() {
     await tester.pumpWidget(const TrollDashApp());
 
     expect(find.text('Troll Dash'), findsOneWidget);
-    expect(find.text('Level auswählen'), findsOneWidget);
+    expect(find.text('Choose Level'), findsOneWidget);
+    expect(find.text('A game by Mias Ehrensperger'), findsOneWidget);
 
-    await tester.tap(find.widgetWithText(FilledButton, 'Level auswählen'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Choose Level'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Level-Auswahl'), findsOneWidget);
+    expect(find.text('Level Select'), findsOneWidget);
     expect(find.text('Level 1'), findsOneWidget);
 
     await tester.tap(find.text('Level 1'));
@@ -43,7 +44,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(const TrollDashApp());
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Level auswählen'));
+      await tester.tap(find.widgetWithText(FilledButton, 'Choose Level'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Level 1'));
       await tester.pump();
@@ -53,19 +54,19 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Troll Dash'), findsOneWidget);
-      expect(find.text('Level auswählen'), findsOneWidget);
-      expect(find.text('Level-Auswahl'), findsNothing);
+      expect(find.text('Choose Level'), findsOneWidget);
+      expect(find.text('Level Select'), findsNothing);
     },
   );
 
   testWidgets('opens skin shop from main menu', (tester) async {
     await tester.pumpWidget(const TrollDashApp());
 
-    await tester.tap(find.widgetWithText(OutlinedButton, 'Skin-Shop'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Skin Shop'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Glücksrad'), findsOneWidget);
-    expect(find.text('Spin kaufen (5 Münzen)'), findsOneWidget);
+    expect(find.text('Lucky Wheel'), findsOneWidget);
+    expect(find.text('Buy a spin (5 coins)'), findsOneWidget);
 
     // The wheel makes the spin card tall; the skin list starts below the
     // fold, so scroll it into view.
@@ -79,7 +80,7 @@ void main() {
     GameEconomy.state.value = const EconomyState(coins: 5);
     await tester.pumpWidget(const MaterialApp(home: ShopScreen()));
 
-    await tester.tap(find.text('Spin kaufen (5 Münzen)'));
+    await tester.tap(find.text('Buy a spin (5 coins)'));
     await tester.pump();
 
     // The prize is applied immediately, but the text stays hidden while

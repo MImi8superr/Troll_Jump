@@ -272,7 +272,7 @@ class GameEconomy {
 
     final roll = _random.nextInt(100);
     if (roll < 28) {
-      state.value = state.value.copyWith(lastSpinResult: 'Leider nichts gewonnen');
+      state.value = state.value.copyWith(lastSpinResult: 'No luck this time');
       await _persist(state.value);
       return SpinPrize.nothing;
     }
@@ -280,7 +280,7 @@ class GameEconomy {
       final amount = roll < 45 ? 2 : 7;
       state.value = state.value.copyWith(
         coins: state.value.coins + amount,
-        lastSpinResult: '+$amount Münzen gewonnen',
+        lastSpinResult: 'Won +$amount coins',
       );
       await _persist(state.value);
       return roll < 45 ? SpinPrize.coins2 : SpinPrize.coins7;
@@ -292,7 +292,7 @@ class GameEconomy {
     if (lockedSkins.isEmpty) {
       state.value = state.value.copyWith(
         coins: state.value.coins + 3,
-        lastSpinResult: 'Alle Skins da: +3 Münzen',
+        lastSpinResult: 'All skins owned: +3 coins',
       );
       await _persist(state.value);
       return SpinPrize.skin;
@@ -302,7 +302,7 @@ class GameEconomy {
     state.value = state.value.copyWith(
       ownedSkinIds: {...state.value.ownedSkinIds, skin.id},
       selectedSkinId: skin.id,
-      lastSpinResult: '${skin.name} freigeschaltet',
+      lastSpinResult: '${skin.name} unlocked!',
     );
     await _persist(state.value);
     return SpinPrize.skin;

@@ -11,6 +11,22 @@ class MainMenu extends StatelessWidget {
         child: Stack(
           children: [
             const _MenuBackdrop(),
+            // The maker's mark: visible on every launch.
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'A game by Mias Ehrensperger',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
             Center(
               child: Transform.translate(
                 offset: const Offset(0, -36),
@@ -31,7 +47,7 @@ class MainMenu extends StatelessWidget {
                       ),
                       const SizedBox(height: 14),
                       const Text(
-                        'Tiny jumps. Mean traps. Twenty-seven levels.',
+                        'Tiny jumps. Mean traps. Twenty-nine levels.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 16,
@@ -50,7 +66,7 @@ class MainMenu extends StatelessWidget {
                                   context,
                                 ).pushNamed('/levels'),
                                 icon: const Icon(Icons.play_arrow_rounded),
-                                label: const Text('Level auswählen'),
+                                label: const Text('Choose Level'),
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 56),
                                   textStyle: const TextStyle(
@@ -67,7 +83,7 @@ class MainMenu extends StatelessWidget {
                                   context,
                                 ).pushNamed('/shop'),
                                 icon: const Icon(Icons.storefront_rounded),
-                                label: const Text('Skin-Shop'),
+                                label: const Text('Skin Shop'),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size(0, 56),
                                   backgroundColor: Colors.white,
