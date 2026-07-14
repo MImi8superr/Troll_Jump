@@ -11,7 +11,6 @@ class LevelProgress {
   LevelProgress._();
 
   static const String _storageKey = 'highest_unlocked_level';
-  static const String _migrationKey = 'level_order_39_migrated';
 
   static final ValueNotifier<int> highestUnlockedLevel = ValueNotifier<int>(1);
 
@@ -21,19 +20,8 @@ class LevelProgress {
     try {
       final prefs = await SharedPreferences.getInstance();
       final stored = prefs.getInt(_storageKey);
-      if (stored != null) {
-        final migrated = prefs.getBool(_migrationKey) == true
-            ? stored
-            : _migrateLegacyHighestUnlocked(stored);
-        if (migrated > highestUnlockedLevel.value) {
-          highestUnlockedLevel.value = migrated;
-        }
-        if (migrated != stored || prefs.getBool(_migrationKey) != true) {
-          await prefs.setInt(_storageKey, migrated);
-          await prefs.setBool(_migrationKey, true);
-        }
-      } else {
-        await prefs.setBool(_migrationKey, true);
+      if (stored != null && stored > highestUnlockedLevel.value) {
+        highestUnlockedLevel.value = stored;
       }
     } catch (_) {
       // Keep the default (level 1) if storage is unavailable.
@@ -52,22 +40,10 @@ class LevelProgress {
     _persist(levelNumber);
   }
 
-  static int _migrateLegacyHighestUnlocked(int legacyLevelNumber) {
-    if (legacyLevelNumber <= 0) {
-      return 1;
-    }
-    const insertedBeforeLegacyLevels = [4, 7, 10, 13, 16, 19, 22, 25, 27, 29];
-    final insertedUnlocked = insertedBeforeLegacyLevels
-        .where((legacyInsertionPoint) => legacyLevelNumber >= legacyInsertionPoint)
-        .length;
-    return legacyLevelNumber + insertedUnlocked;
-  }
-
   static Future<void> _persist(int levelNumber) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_storageKey, levelNumber);
-      await prefs.setBool(_migrationKey, true);
     } catch (_) {
       // Non-fatal: progress simply won't survive this session.
     }
