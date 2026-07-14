@@ -103,6 +103,9 @@ flutter_launcher_icons:
   image_path: "assets/icons/app_icon.png"
   android: true
   ios: true
+  # The App Store rejects 1024px marketing icons that carry an alpha
+  # channel; the master PNG is RGBA, so strip it for iOS.
+  remove_alpha_ios: true
   web:
     generate: true
     image_path: "assets/icons/app_icon.png"
