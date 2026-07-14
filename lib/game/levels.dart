@@ -46,16 +46,6 @@ List<Level> buildLevels() {
     ),
     Level(
       number: 4,
-      title: 'Wobbly Welcome',
-      width: 1320,
-      playerStart: _start(),
-      platforms: [_ground('g-n1a', 0, 440), _platform('n1-fake', 470, 430, 150, cracked: true), _platform('n1-safe', 555, 380, 150), _ground('g-n1b', 720, 600)],
-      spikes: [_upSpike('n1-mark', 620, dangerous: false)],
-      goal: _goal(1200),
-      traps: [DisappearPlatformTrap(platformId: 'n1-fake', delay: 0.42)],
-    ),
-    Level(
-      number: 5,
       title: 'Look Up',
       width: 1200,
       playerStart: _start(),
@@ -65,7 +55,7 @@ List<Level> buildLevels() {
       traps: [DropSpikeTrap(spikeId: 'drop-spike', triggerX: 500)],
     ),
     Level(
-      number: 6,
+      number: 5,
       title: 'Almost There',
       width: 1280,
       playerStart: _start(),
@@ -77,7 +67,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 7,
+      number: 6,
       title: 'Jump Starts It',
       width: 1300,
       playerStart: _start(),
@@ -98,17 +88,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 8,
-      title: 'Coin Breadcrumbs',
-      width: 1380,
-      playerStart: _start(),
-      platforms: [_ground('g-n2a', 0, 460), Platform(id: 'n2-hidden-a', rect: const Rect.fromLTWH(520, 430, 110, 22), visible: false), Platform(id: 'n2-hidden-b', rect: const Rect.fromLTWH(690, 390, 110, 22), visible: false), _ground('g-n2b', 880, 500)],
-      spikes: [_upSpike('n2-bait', 790)],
-      coins: [Coin(id: 'n2-c1', rect: const Rect.fromLTWH(555, 380, 18, 18)), Coin(id: 'n2-c2', rect: const Rect.fromLTWH(725, 340, 18, 18))],
-      goal: _goal(1260),
-    ),
-    Level(
-      number: 9,
+      number: 7,
       title: 'Something Underfoot',
       width: 1200,
       playerStart: _start(),
@@ -121,7 +101,7 @@ List<Level> buildLevels() {
       traps: [RevealSpikeTrap(spikeId: 'hidden-spike', triggerDistance: 115)],
     ),
     Level(
-      number: 10,
+      number: 8,
       title: 'Cracked Floor',
       width: 1250,
       playerStart: _start(),
@@ -137,7 +117,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 11,
+      number: 9,
       title: 'Spring Manners',
       width: 1250,
       playerStart: _start(),
@@ -161,17 +141,7 @@ List<Level> buildLevels() {
       goal: _goal(1130),
     ),
     Level(
-      number: 12,
-      title: 'Polite Timing',
-      width: 1460,
-      playerStart: _start(),
-      platforms: [_ground('g-n3a', 0, 520), _ground('g-n3b', 820, 640), _platform('n3-clock', 560, 430, 130)],
-      spikes: [_downSpike('n3-drop', 930, 130)],
-      goal: _goal(1340),
-      traps: [ActivateMovingPlatformTrap(platformId: 'n3-clock', speed: 135, minX: 540, maxX: 700), DropSpikeTrap(spikeId: 'n3-drop', triggerX: 890)],
-    ),
-    Level(
-      number: 13,
+      number: 10,
       title: 'Shy Platform',
       width: 1300,
       playerStart: _start(),
@@ -192,7 +162,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 14,
+      number: 11,
       title: 'Looks Can Hurt',
       width: 1150,
       playerStart: _start(),
@@ -210,7 +180,7 @@ List<Level> buildLevels() {
       goal: _goal(1040),
     ),
     Level(
-      number: 15,
+      number: 12,
       title: 'Step Back',
       width: 1200,
       playerStart: _start(170),
@@ -225,19 +195,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 16,
-      title: 'No, Back There',
-      width: 1500,
-      playerStart: _start(),
-      platforms: [_ground('g-n4', 0, 1500), _wall('n4-soft-wall', 1060, 120, solid: false)],
-      spikes: [_hiddenUpSpike('n4-forward', 760), _upSpike('n4-return', 360)],
-      reverseZones: [_reverseZone('n4-rev', 820, 260)],
-      checkpoints: [_checkpoint('cp-n4', 650)],
-      goal: _goal(1230),
-      traps: [ReverseFirstTrap(spikeId: 'n4-forward', disarmX: 140, triggerX: 750)],
-    ),
-    Level(
-      number: 17,
+      number: 13,
       title: 'Stacked Tricks',
       width: 1450,
       playerStart: _start(),
@@ -262,7 +220,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 18,
+      number: 14,
       title: 'Timing Window',
       width: 1500,
       playerStart: _start(),
@@ -296,7 +254,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 19,
+      number: 15,
       title: 'Final Mix',
       width: 1650,
       playerStart: _start(),
@@ -334,18 +292,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 20,
-      title: 'Ceiling Sigh',
-      width: 1700,
-      playerStart: _start(),
-      platforms: [_ground('g-n5', 0, 1700)],
-      spikes: [_downSpike('n5-a', 620, 100), _downSpike('n5-b', 760, 100), _downSpike('n5-c', 900, 100), _upSpike('n5-rest', 1180)],
-      checkpoints: [_checkpoint('cp-n5', 1040)],
-      goal: _goal(1580),
-      traps: [DropSpikeTrap(spikeId: 'n5-a', triggerX: 560), DropSpikeTrap(spikeId: 'n5-b', triggerX: 700), DropSpikeTrap(spikeId: 'n5-c', triggerX: 840)],
-    ),
-    Level(
-      number: 21,
+      number: 16,
       title: 'Mirror Rules',
       width: 1500,
       playerStart: _start(),
@@ -369,7 +316,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 22,
+      number: 17,
       title: 'The Wrong Exit',
       width: 1600,
       playerStart: _start(),
@@ -396,7 +343,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 23,
+      number: 18,
       title: 'Leap of Faith',
       width: 1700,
       // The run starts on an elevated block; the pit below is the real path.
@@ -452,18 +399,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 24,
-      title: 'Three Bad Ideas',
-      width: 1900,
-      playerStart: _start(),
-      platforms: [_ground('g-n6a', 0, 520), _platform('n6-top', 600, 350, 360), _platform('n6-fade', 1020, 430, 150, cracked: true), _ground('g-n6b', 1240, 660)],
-      spikes: [_upSpike('n6-fast', 700), _upSpike('n6-troll', 1110), _downSpike('n6-lid', 1500, 120)],
-      checkpoints: [_checkpoint('cp-n6', 1260)],
-      goal: _goal(1780),
-      traps: [DisappearPlatformTrap(platformId: 'n6-fade', delay: 0.38), DropSpikeTrap(spikeId: 'n6-lid', triggerX: 1450)],
-    ),
-    Level(
-      number: 25,
+      number: 19,
       title: 'Thin Ice',
       width: 1800,
       playerStart: _start(),
@@ -515,7 +451,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 26,
+      number: 20,
       title: 'Troll Parade',
       width: 2600,
       playerStart: _start(),
@@ -572,7 +508,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 27,
+      number: 21,
       title: 'Trollhalla',
       width: 2650,
       playerStart: _start(),
@@ -674,19 +610,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 28,
-      title: 'Fake Promotion',
-      width: 2100,
-      playerStart: _start(),
-      platforms: [_ground('g-n7', 0, 2100)],
-      spikes: [_hiddenUpSpike('n7-fg-a', 1290), _hiddenUpSpike('n7-fg-b', 1335), _upSpike('n7-after', 1660)],
-      decoyGoal: Goal(rect: const Rect.fromLTWH(1320, floorY - 86, 54, 86)),
-      goal: _goal(1940, visible: false),
-      checkpoints: [_checkpoint('cp-n7', 980)],
-      traps: [FakeGoalTrap(revealSpikeIds: ['n7-fg-a', 'n7-fg-b'])],
-    ),
-    Level(
-      number: 29,
+      number: 22,
       title: 'Mirror Match',
       width: 2400,
       playerStart: _start(),
@@ -734,7 +658,7 @@ List<Level> buildLevels() {
       ],
     ),
     Level(
-      number: 30,
+      number: 23,
       title: 'Lights Out',
       width: 2500,
       playerStart: _start(),
@@ -781,7 +705,7 @@ List<Level> buildLevels() {
     // dark, the spike carpet below is (mostly) a lie, a hunter hides in the
     // crowd, and the friendliest light in the darkness is a fake lantern.
     Level(
-      number: 31,
+      number: 24,
       title: 'Blind Faith',
       width: 2700,
       playerStart: Offset(64, 380 - playerSize.height),
@@ -871,18 +795,7 @@ List<Level> buildLevels() {
     // stacked trifecta of zones, and a goal that takes one last dive. The
     // real flag waits quietly behind you.
     Level(
-      number: 32,
-      title: 'Bounce Contract',
-      width: 2300,
-      playerStart: _start(),
-      platforms: [_ground('g-n8a', 0, 760), _platform('n8-mid', 960, 340, 240), _ground('g-n8b', 1450, 850)],
-      spikes: [_downSpike('n8-roof-a', 790, 330), _downSpike('n8-roof-b', 870, 330), _upSpike('n8-floor', 1360)],
-      jumpPads: [JumpPad(id: 'n8-pad-a', rect: const Rect.fromLTWH(760, floorY - 14, 72, 14)), JumpPad(id: 'n8-pad-b', rect: const Rect.fromLTWH(1220, 326, 72, 14), gentleVelocity: -500, wildVelocity: -760)],
-      checkpoints: [_checkpoint('cp-n8', 1510)],
-      goal: _goal(2160),
-    ),
-    Level(
-      number: 33,
+      number: 25,
       title: 'The Last Laugh',
       width: 3000,
       playerStart: _start(),
@@ -944,7 +857,7 @@ List<Level> buildLevels() {
     // bridge platforms at once. Restraint matters again in the ice basin,
     // where a fast launch hits the roof and a gentle launch finds the exit.
     Level(
-      number: 34,
+      number: 26,
       title: 'Panic Button',
       width: 2880,
       playerStart: _start(),
@@ -1031,18 +944,7 @@ List<Level> buildLevels() {
     // player back for a second lap: the familiar floor spike is now harmless,
     // its harmless ceiling twin is armed, and the bridge has moved downstairs.
     Level(
-      number: 35,
-      title: 'Switcheroo',
-      width: 2400,
-      playerStart: _start(),
-      platforms: [_ground('g-n9a', 0, 650), _quantumA('n9-a1', 720, 430, 120), _quantumB('n9-b1', 900, 430, 120), _quantumA('n9-a2', 1080, 430, 120), _ground('g-n9b', 1280, 1120)],
-      spikes: [_upSpike('n9-force', 520), _upSpike('n9-late', 1640)],
-      checkpoints: [_checkpoint('cp-n9', 1320)],
-      goal: _goal(2260),
-      traps: [QuantumSwapTrap(groupA: ['n9-a1', 'n9-a2'], groupB: ['n9-b1'])],
-    ),
-    Level(
-      number: 36,
+      number: 27,
       title: 'Déjà Troll',
       width: 2200,
       playerStart: _start(),
@@ -1153,7 +1055,7 @@ List<Level> buildLevels() {
     // flips which — pad launches don't count. The rule the level teaches:
     // aim for the ghost, because your own jump is what makes it real.
     Level(
-      number: 37,
+      number: 28,
       title: "Schrödinger's Bridge",
       width: 2760,
       playerStart: _start(),
@@ -1225,19 +1127,7 @@ List<Level> buildLevels() {
     // the enemy on the way back — and it catches up whenever you stand
     // still. Checkpoints wipe its memory.
     Level(
-      number: 38,
-      title: 'Echo Detour',
-      width: 2500,
-      playerStart: _start(),
-      platforms: [_ground('g-n10', 0, 2450), _platform('n10-roof', 700, 300, 350), _wall('n10-turn', 2100, 150)],
-      spikes: [_upSpike('n10-a', 520), _downSpike('n10-lid-a', 760, 322), _downSpike('n10-lid-b', 880, 322), _upSpike('n10-return', 1180)],
-      checkpoints: [_checkpoint('cp-n10', 1880)],
-      decoyGoal: Goal(rect: const Rect.fromLTWH(2140, floorY - 86, 54, 86)),
-      goal: _goal(330, visible: false),
-      traps: [EchoTrap(armX: 300), FakeGoalTrap(revealSpikeIds: [])],
-    ),
-    Level(
-      number: 39,
+      number: 29,
       title: 'Echo Chamber',
       width: 2320,
       playerStart: _start(),
