@@ -65,12 +65,16 @@ void main() {
     await tester.tap(find.widgetWithText(OutlinedButton, 'Skin Shop'));
     await tester.pumpAndSettle();
 
+    // Page one hosts the wheel; the coin balance lives in the app bar.
     expect(find.text('Lucky Wheel'), findsOneWidget);
     expect(find.text('Buy a spin (5 coins)'), findsOneWidget);
+    expect(find.text('0 coins'), findsOneWidget);
 
-    // The wheel makes the spin card tall; the skin list starts below the
-    // fold, so scroll it into view.
-    await tester.scrollUntilVisible(find.text('Classic Blue'), 200);
+    // The skins sit on the second swipe page; the chevron mirrors the swipe.
+    await tester.tap(find.byIcon(Icons.chevron_right_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Skins'), findsOneWidget);
     expect(find.text('Classic Blue'), findsOneWidget);
   });
 
