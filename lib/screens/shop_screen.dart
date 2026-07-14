@@ -13,7 +13,7 @@ class ShopScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFE6F4FF),
       appBar: AppBar(
-        title: const Text('Skin-Shop'),
+        title: const Text('Skin Shop'),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -66,7 +66,7 @@ class _CoinBalance extends StatelessWidget {
           const Icon(Icons.monetization_on_rounded, color: Color(0xFFF59E0B)),
           const SizedBox(width: 8),
           Text(
-            '$coins Münzen',
+            '$coins coins',
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
           ),
         ],
@@ -180,12 +180,12 @@ class _SpinCardState extends State<_SpinCard>
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Glücksrad',
+              'Lucky Wheel',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
             const Text(
-              'Ein Spin kostet 5 Münzen. Gewinne Skins, mehr Münzen oder auch nichts.',
+              'One spin costs 5 coins. Win skins, extra coins — or nothing at all.',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
@@ -234,7 +234,7 @@ class _SpinCardState extends State<_SpinCard>
             FilledButton.icon(
               onPressed: canSpin && !_spinning ? _spin : null,
               icon: const Icon(Icons.casino_rounded),
-              label: const Text('Spin kaufen (5 Münzen)'),
+              label: const Text('Buy a spin (5 coins)'),
             ),
           ],
         ),
@@ -392,10 +392,10 @@ class _SkinCard extends StatelessWidget {
     final selected = economy.selectedSkinId == skin.id;
     final canBuy = economy.coins >= skin.price;
     final buttonText = selected
-        ? 'Ausgerüstet'
+        ? 'Equipped'
         : owned
-            ? 'Ausrüsten'
-            : '${skin.price} Münzen';
+            ? 'Equip'
+            : '${skin.price} coins';
 
     return Card(
       elevation: 2,
@@ -414,7 +414,7 @@ class _SkinCard extends StatelessWidget {
           skin.name,
           style: const TextStyle(fontWeight: FontWeight.w900),
         ),
-        subtitle: Text(owned ? 'Freigeschaltet' : 'Noch nicht gekauft'),
+        subtitle: Text(owned ? 'Unlocked' : 'Not owned yet'),
         trailing: FilledButton(
           onPressed: selected
               ? null

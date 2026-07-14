@@ -20,7 +20,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE6F4FF),
       appBar: AppBar(
-        title: const Text('Level-Auswahl'),
+        title: const Text('Level Select'),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -33,7 +33,7 @@ class _LevelSelectScreenState extends State<LevelSelectScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'Freigeschaltet: Level $highestUnlocked von ${_levels.length}',
+                    'Unlocked: level $highestUnlocked of ${_levels.length}',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 18,

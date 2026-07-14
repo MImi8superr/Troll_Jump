@@ -17,7 +17,7 @@ class MainMenu extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.only(bottom: 10),
                 child: Text(
-                  'Ein Spiel von Mias Ehrensperger',
+                  'A game by Mias Ehrensperger',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
@@ -66,7 +66,7 @@ class MainMenu extends StatelessWidget {
                                   context,
                                 ).pushNamed('/levels'),
                                 icon: const Icon(Icons.play_arrow_rounded),
-                                label: const Text('Level auswählen'),
+                                label: const Text('Choose Level'),
                                 style: FilledButton.styleFrom(
                                   minimumSize: const Size(0, 56),
                                   textStyle: const TextStyle(
@@ -83,7 +83,7 @@ class MainMenu extends StatelessWidget {
                                   context,
                                 ).pushNamed('/shop'),
                                 icon: const Icon(Icons.storefront_rounded),
-                                label: const Text('Skin-Shop'),
+                                label: const Text('Skin Shop'),
                                 style: OutlinedButton.styleFrom(
                                   minimumSize: const Size(0, 56),
                                   backgroundColor: Colors.white,

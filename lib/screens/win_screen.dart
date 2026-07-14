@@ -54,7 +54,7 @@ class WinScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 18),
                 const Text(
-                  'Ein Spiel von Mias Ehrensperger',
+                  'A game by Mias Ehrensperger',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
