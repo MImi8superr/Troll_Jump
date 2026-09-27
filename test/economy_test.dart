@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:troll_dash/game/economy.dart';
+import 'package:fake_floor/game/economy.dart';
 
 void main() {
   setUp(() {

@@ -1,4 +1,4 @@
-package ch.gregiwaller.trolldash
+package ch.gregiwaller.fakefloor
 
 import io.flutter.embedding.android.FlutterActivity
 

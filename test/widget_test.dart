@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:troll_dash/game/economy.dart';
-import 'package:troll_dash/game/level_progress.dart';
-import 'package:troll_dash/main.dart';
-import 'package:troll_dash/screens/shop_screen.dart';
+import 'package:fake_floor/game/economy.dart';
+import 'package:fake_floor/game/level_progress.dart';
+import 'package:fake_floor/main.dart';
+import 'package:fake_floor/screens/shop_screen.dart';
 
 void main() {
   setUp(() {
@@ -15,10 +15,10 @@ void main() {
     GameEconomy.state.value = const EconomyState();
   });
 
-  testWidgets('opens Troll Dash and starts level one', (tester) async {
-    await tester.pumpWidget(const TrollDashApp());
+  testWidgets('opens Fake Floor and starts level one', (tester) async {
+    await tester.pumpWidget(const FakeFloorApp());
 
-    expect(find.text('Troll Dash'), findsOneWidget);
+    expect(find.text('Fake Floor'), findsOneWidget);
     expect(find.text('Choose Level'), findsOneWidget);
     expect(find.text('A game by Mias Ehrensperger'), findsOneWidget);
     expect(find.text('Hidden hazards'), findsOneWidget);
@@ -45,7 +45,7 @@ void main() {
   testWidgets(
     'home button returns from a level to the main menu',
     (tester) async {
-      await tester.pumpWidget(const TrollDashApp());
+      await tester.pumpWidget(const FakeFloorApp());
 
       await tester.tap(find.widgetWithText(FilledButton, 'Choose Level'));
       await tester.pumpAndSettle();
@@ -56,14 +56,14 @@ void main() {
       await tester.tap(find.byTooltip('Menu'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Troll Dash'), findsOneWidget);
+      expect(find.text('Fake Floor'), findsOneWidget);
       expect(find.text('Choose Level'), findsOneWidget);
       expect(find.text('Level Select'), findsNothing);
     },
   );
 
   testWidgets('opens skin shop from main menu', (tester) async {
-    await tester.pumpWidget(const TrollDashApp());
+    await tester.pumpWidget(const FakeFloorApp());
 
     await tester.tap(find.widgetWithText(OutlinedButton, 'Skin Shop'));
     await tester.pumpAndSettle();

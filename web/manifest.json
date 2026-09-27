@@ -1,11 +1,11 @@
 {
-    "name": "Troll Dash",
-    "short_name": "Troll Dash",
+    "name": "Fake Floor",
+    "short_name": "Fake Floor",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#BFE7FF",
     "theme_color": "#2563EB",
-    "description": "A troll platformer: 29 levels of traps that use your own habits against you.",
+    "description": "A platformer where the floor cannot be trusted: 29 levels of traps that use your own habits against you.",
     "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [

@@ -1,7 +1,8 @@
-# Troll Dash
+# Fake Floor
 
-A shape-based troll platformer built with Flutter: 29 hand-crafted levels of
-reactive traps that learn your habits and use them against you.
+A shape-based platformer built with Flutter where the floor cannot be
+trusted: 29 hand-crafted levels of reactive traps that learn your habits
+and use them against you.
 
 Everything in the game is original work developed in this repository:
 

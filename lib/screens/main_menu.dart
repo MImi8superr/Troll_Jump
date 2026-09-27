@@ -36,7 +36,7 @@ class MainMenu extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Text(
-                        'Troll Dash',
+                        'Fake Floor',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 44,

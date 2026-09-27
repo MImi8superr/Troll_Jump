@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:troll_dash/game/collision.dart';
-import 'package:troll_dash/game/models.dart';
+import 'package:fake_floor/game/collision.dart';
+import 'package:fake_floor/game/models.dart';
 
 void main() {
   group('spikeHitsPlayer (triangular hitbox)', () {
