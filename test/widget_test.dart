@@ -21,6 +21,9 @@ void main() {
     expect(find.text('Troll Dash'), findsOneWidget);
     expect(find.text('Choose Level'), findsOneWidget);
     expect(find.text('A game by Mias Ehrensperger'), findsOneWidget);
+    expect(find.text('Hidden hazards'), findsOneWidget);
+    expect(find.text('World swaps'), findsOneWidget);
+    expect(find.text('Second-lap traps'), findsOneWidget);
 
     await tester.tap(find.widgetWithText(FilledButton, 'Choose Level'));
     await tester.pumpAndSettle();
