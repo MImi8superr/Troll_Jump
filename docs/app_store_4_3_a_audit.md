@@ -80,10 +80,8 @@ padding, hash-only changes, or review-detection workarounds were introduced.
   full-screen presentation, the standard Flutter scene delegate, and no usage
   descriptions or URL types. The scene configuration value `flutter` is an
   internal configuration name, **not** a registered URL scheme.
-- All Debug, Profile, and Release iOS app configurations use
-  `ch.gregiwaller.trollrunner`, matching the existing App Store distribution
-  profile. Test identifiers use the same prefix. Other platforms retain their
-  platform-specific `ch.gregiwaller.trolldash` identifiers.
+- All Debug, Profile, and Release app configurations use
+  `ch.gregiwaller.trolldash`. Test identifiers use the same prefix.
 - No iOS entitlements file is attached to the app target. The project requests
   no push, keychain group, associated-domain, iCloud, or Sign in with Apple
   capability.
@@ -111,7 +109,7 @@ padding, hash-only changes, or review-detection workarounds were introduced.
 ## Items to review manually in App Store Connect
 
 1. Confirm the App Store Connect bundle ID exactly matches
-   `ch.gregiwaller.trollrunner`, and that the uploaded archive is signed by the
+   `ch.gregiwaller.trolldash`, and that the uploaded archive is signed by the
    current, legitimate developer team.
 2. Replace any generic or inherited app name, subtitle, promotional text,
    keywords, description, support URL, privacy URL, and marketing URL. Describe
