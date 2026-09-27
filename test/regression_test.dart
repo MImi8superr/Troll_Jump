@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:troll_dash/game/economy.dart';
-import 'package:troll_dash/game/game_painter.dart';
-import 'package:troll_dash/game/levels.dart';
-import 'package:troll_dash/game/models.dart';
-import 'package:troll_dash/screens/game_screen.dart';
-import 'package:troll_dash/screens/level_select_screen.dart';
+import 'package:fake_floor/game/economy.dart';
+import 'package:fake_floor/game/game_painter.dart';
+import 'package:fake_floor/game/levels.dart';
+import 'package:fake_floor/game/models.dart';
+import 'package:fake_floor/screens/game_screen.dart';
+import 'package:fake_floor/screens/level_select_screen.dart';
 
 void main() {
   test(

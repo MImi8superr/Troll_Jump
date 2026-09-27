@@ -8,7 +8,7 @@ records, and assets that are not available in this repository.
 
 ## Executive summary
 
-Troll Dash is not a thin content wrapper or a stock Flutter counter sample. It
+Fake Floor (formerly Troll Dash) is not a thin content wrapper or a stock Flutter counter sample. It
 contains a hand-written platformer loop, 29 named levels, multiple trap classes,
 checkpoints, persistent progress, collectible coins, unlockable player skins,
 sound effects, and custom-painted gameplay. The strongest evidence of a distinct
@@ -24,8 +24,10 @@ padding, hash-only changes, or review-detection workarounds were introduced.
 
 ### Product identity and UI
 
-- The app consistently uses **Troll Dash**, the package name `troll_dash`, and
-  the creator credit **Mias Ehrensperger**. The main menu previously presented
+- The app consistently uses **Fake Floor**, the package name `fake_floor`, and
+  the creator credit **Mias Ehrensperger**. The earlier working title "Troll
+  Dash" was retired because "troll" names are heavily used by look-alike trap
+  platformers in the App Store. The main menu previously presented
   only a conventional title plus play/shop actions, which could undersell the
   game's distinctive behavior in a short review session.
 - The menu now previews three real mechanics—hidden hazards, world swaps, and
@@ -67,7 +69,7 @@ padding, hash-only changes, or review-detection workarounds were introduced.
 - The icon is coherent with gameplay, but its blue rounded character, sun,
   hills, and spikes are generic geometric motifs. Manually verify that the
   artwork was not derived from a tutorial/template and consider whether it is
-  distinctive enough to identify Troll Dash without its title.
+  distinctive enough to identify Fake Floor without its title.
 - The empty `assets/icons/.gitkeep` and Flutter's instructional
   `LaunchImage.imageset/README.md` were removed because they had no runtime use.
 - Source inspection cannot prove external copyright ownership. Keep the source
@@ -76,12 +78,15 @@ padding, hash-only changes, or review-detection workarounds were introduced.
 
 ### iOS review
 
-- `Info.plist` declares **Troll Dash** / `TrollDash`, landscape-only operation,
+- `Info.plist` declares **Fake Floor** / `FakeFloor`, landscape-only operation,
   full-screen presentation, the standard Flutter scene delegate, and no usage
   descriptions or URL types. The scene configuration value `flutter` is an
   internal configuration name, **not** a registered URL scheme.
 - All Debug, Profile, and Release app configurations use
-  `ch.gregiwaller.trolldash`. Test identifiers use the same prefix.
+  `ch.gregiwaller.trollrunner`. Test identifiers use the same prefix. This is
+  the bundle ID of the existing App Store Connect record (locked once a build
+  has been uploaded) and is never shown to players; only the display name
+  changed with the rename. The CI workflow's `IOS_BUNDLE_ID` must match it.
 - No iOS entitlements file is attached to the app target. The project requests
   no push, keychain group, associated-domain, iCloud, or Sign in with Apple
   capability.
@@ -99,9 +104,9 @@ padding, hash-only changes, or review-detection workarounds were introduced.
 
 - Stale `com.example` / `com.example.trollRun` identifiers and generic window
   titles were found in macOS, Linux, and Windows scaffold files. They do not set
-  the iOS app identity, but were normalized to Troll Dash and
-  `ch.gregiwaller.trolldash` so the repository has one coherent owner identity.
-- Android already uses `ch.gregiwaller.trolldash` and the Troll Dash label.
+  the iOS app identity, but were normalized to Fake Floor and
+  `ch.gregiwaller.fakefloor` so the repository has one coherent owner identity.
+- Android uses `ch.gregiwaller.fakefloor` and the Fake Floor label.
   Its checked-in release configuration intentionally uses a debug key only for
   local runs; a private production signing configuration still must be supplied
   outside Git before distributing an Android build.
@@ -109,7 +114,7 @@ padding, hash-only changes, or review-detection workarounds were introduced.
 ## Items to review manually in App Store Connect
 
 1. Confirm the App Store Connect bundle ID exactly matches
-   `ch.gregiwaller.trolldash`, and that the uploaded archive is signed by the
+   `ch.gregiwaller.trollrunner` (and rename the record to Fake Floor), and that the uploaded archive is signed by the
    current, legitimate developer team.
 2. Replace any generic or inherited app name, subtitle, promotional text,
    keywords, description, support URL, privacy URL, and marketing URL. Describe

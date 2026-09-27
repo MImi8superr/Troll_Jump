@@ -1,5 +1,5 @@
-name: troll_dash
-description: "A shape-based mobile platformer with reactive troll traps."
+name: fake_floor
+description: "A shape-based mobile platformer where the floor cannot be trusted."
 publish_to: 'none'
 version: 1.1.0+2
 

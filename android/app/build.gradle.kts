@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "ch.gregiwaller.trolldash"
+    namespace = "ch.gregiwaller.fakefloor"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "ch.gregiwaller.trolldash"
+        applicationId = "ch.gregiwaller.fakefloor"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

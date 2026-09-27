@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Troll Dash launch splash: the game's sky blue with the app mark. -->
+<!-- Fake Floor launch splash: the game's sky blue with the app mark. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <color android:color="#BFE7FF" />

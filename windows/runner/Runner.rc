@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "Mias Ehrensperger" "\0"
-            VALUE "FileDescription", "Troll Dash" "\0"
+            VALUE "FileDescription", "Fake Floor" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "Troll Dash" "\0"
+            VALUE "InternalName", "Fake Floor" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 Mias Ehrensperger. All rights reserved." "\0"
-            VALUE "OriginalFilename", "troll_dash.exe" "\0"
-            VALUE "ProductName", "Troll Dash" "\0"
+            VALUE "OriginalFilename", "fake_floor.exe" "\0"
+            VALUE "ProductName", "Fake Floor" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

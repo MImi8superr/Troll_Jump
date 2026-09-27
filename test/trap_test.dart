@@ -3,8 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:troll_dash/game/levels.dart';
-import 'package:troll_dash/game/models.dart';
+import 'package:fake_floor/game/levels.dart';
+import 'package:fake_floor/game/models.dart';
 
 void main() {
   group('FakeGoalTrap (level 17)', () {

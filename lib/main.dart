@@ -19,16 +19,16 @@ Future<void> main() async {
   ]);
   await LevelProgress.load();
   await GameEconomy.load();
-  runApp(const TrollDashApp());
+  runApp(const FakeFloorApp());
 }
 
-class TrollDashApp extends StatelessWidget {
-  const TrollDashApp({super.key});
+class FakeFloorApp extends StatelessWidget {
+  const FakeFloorApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Troll Dash',
+      title: 'Fake Floor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

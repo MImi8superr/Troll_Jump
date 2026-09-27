@@ -7,7 +7,7 @@ class RunnerTests: XCTestCase {
   func testProductIdentityIsConfigured() throws {
     let info = try XCTUnwrap(Bundle(for: AppDelegate.self).infoDictionary)
 
-    XCTAssertEqual(info["CFBundleDisplayName"] as? String, "Troll Dash")
-    XCTAssertNil(info["CFBundleURLTypes"], "Troll Dash does not register URL schemes")
+    XCTAssertEqual(info["CFBundleDisplayName"] as? String, "Fake Floor")
+    XCTAssertNil(info["CFBundleURLTypes"], "Fake Floor does not register URL schemes")
   }
 }

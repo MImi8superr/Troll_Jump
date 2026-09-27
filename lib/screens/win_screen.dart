@@ -23,7 +23,7 @@ class WinScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'You beat Troll Dash!',
+                  'You beat Fake Floor!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 34,

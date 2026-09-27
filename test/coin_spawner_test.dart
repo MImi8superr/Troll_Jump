@@ -2,8 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:troll_dash/game/coin_spawner.dart';
-import 'package:troll_dash/game/levels.dart';
+import 'package:fake_floor/game/coin_spawner.dart';
+import 'package:fake_floor/game/levels.dart';
 
 void main() {
   test('a failed roll spawns nothing', () {
