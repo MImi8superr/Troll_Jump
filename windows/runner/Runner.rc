@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "troll_dash" "\0"
+            VALUE "CompanyName", "Mias Ehrensperger" "\0"
+            VALUE "FileDescription", "Troll Dash" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "troll_dash" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
+            VALUE "InternalName", "Troll Dash" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 Mias Ehrensperger. All rights reserved." "\0"
             VALUE "OriginalFilename", "troll_dash.exe" "\0"
-            VALUE "ProductName", "troll_dash" "\0"
+            VALUE "ProductName", "Troll Dash" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

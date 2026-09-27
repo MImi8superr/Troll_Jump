@@ -55,7 +55,9 @@ class MainMenu extends StatelessWidget {
                           color: Color(0xFF334155),
                         ),
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 18),
+                      const _TrapSignature(),
+                      const SizedBox(height: 22),
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 460),
                         child: Row(
@@ -105,6 +107,65 @@ class MainMenu extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact preview of the authored mechanics, rather than a generic
+/// play/shop menu. Each promise maps to traps that appear in the level set.
+class _TrapSignature extends StatelessWidget {
+  const _TrapSignature();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _MechanicChip(
+          icon: Icons.visibility_off_rounded,
+          label: 'Hidden hazards',
+        ),
+        _MechanicChip(icon: Icons.swap_horiz_rounded, label: 'World swaps'),
+        _MechanicChip(icon: Icons.replay_rounded, label: 'Second-lap traps'),
+      ],
+    );
+  }
+}
+
+class _MechanicChip extends StatelessWidget {
+  const _MechanicChip({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xD9FFFFFF),
+        border: Border.all(color: const Color(0xFF93C5FD)),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: const Color(0xFF1D4ED8)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF1E3A5F),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
