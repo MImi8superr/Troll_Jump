@@ -1,7 +1,7 @@
 name: fake_floor
 description: "A shape-based mobile platformer where the floor cannot be trusted."
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.0.0+2
 
 environment:
   sdk: ^3.12.2
